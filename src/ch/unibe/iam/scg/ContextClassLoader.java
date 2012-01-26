@@ -13,153 +13,16 @@ import javassist.CtClass;
 import javassist.CtConstructor;
 import javassist.CtMethod;
 import javassist.NotFoundException;
-import ch.unibe.iam.scg.rewriter.ArrayInterceptor;
 import ch.unibe.iam.scg.rewriter.ClassRewriter;
 import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
-import ch.unibe.iam.scg.rewriter.RenameDependenciesRewriter;
+import ch.unibe.iam.scg.rewriter.MapDependenciesRewriter;
+import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 
-public class ContextClassLoader extends javassist.Loader{
-
-	private final String versionSuffix;
-	private List<CtClass> toRewire = new ArrayList<CtClass>();
+public class ContextClassLoader extends InstrumentingClassLoader {
 	
-	public ContextClassLoader( String suffix )
-	{
-		versionSuffix = suffix;
-	}
-
-	class ContextClassMap extends ClassMap {
-		   public Object get(Object jvmClassName) {
-		     String name = (String)jvmClassName;
-		     if (needsRewrite(name))
-		         return name + versionSuffix;
-		     else
-		         return name;
-		   }
-		 }
-	
-	private void setClassName( CtClass clazz, String className ) throws CannotCompileException, NotFoundException
-	{
-		String oldName = clazz.getName();
-		CtConstructor[] ctrs = clazz.getConstructors();
-		clazz.setName( className );
-	/*	for( CtConstructor ctr : ctrs ){
-			
-			CtConstructor nctr = javassist.CtNewConstructor.copy( ctr, clazz, null ) ; //new ContextClassMap() );
-			clazz.removeConstructor(ctr);
-			clazz.addConstructor(nctr);
-			System.out.println("Constructor "+ ctr.getName() + "/"+ nctr.getName() );
-		}
-		*/
-	}
-	
-	public CtClass findCtClass( String className ) throws ClassNotFoundException, CannotCompileException, NotFoundException
-	{
-		ClassPool cp = ClassPool.getDefault();
-		CtClass clazz = null;
-		try
-		{
-			clazz = cp.get(className);
-			System.out.println("Found CtFind "+className);
-		}
-		catch( NotFoundException e )
-		{
-			System.out.println("Did not CtFind "+className);	
-			String unversionedName = className.substring(0, className.length() - versionSuffix.length());
-			clazz = cp.get(unversionedName);
-			// @TODO fix hack
-			int oldSize = toRewire.size();
-			toRewire.add(clazz);
-			
-			setClassName( clazz, className );
-			String superClassName = clazz.getSuperclass().getName();
-			CtClass superClazz = null;
-			if( needsRewrite(superClassName))
-			{
-				 superClazz = findCtClass( superClassName + versionSuffix );
-				 //superClazz.toClass();
-			}
-			else
-			{
-				 superClazz = cp.get(superClassName);
-			}
-			clazz.setSuperclass( superClazz );
-			// @TODO document that superclass must haven been instrumented 
-	    	new GenerateAccessorsRewriter().rewrite(clazz);
-	    	new RenameDependenciesRewriter( this, this.versionSuffix ).rewrite(clazz);		
-			
-	    	// @TODO fix super ugly hack
-	    	if( oldSize == 0 ) {
-	    		for( CtClass clazz2 : toRewire ) {
-	    			new InterceptAccessorsRewriter().rewrite(clazz2);
-	    			try {
-	    				clazz2.writeFile();
-	    				clazz2.defrost();
-	    			}catch (IOException e2) {
-	    				// TODO Auto-generated catch block
-	    				e2.printStackTrace();
-	    			} catch (NotFoundException e2) {
-						// TODO Auto-generated catch block
-						e2.printStackTrace();
-					}
-	    		}		
-	    	}
-		};
-		
-		//clazz.toClass();
-		return clazz;
-	}
-	
-	@Override
-	protected Class<?> findClass(String className) throws ClassNotFoundException {
-		
-		System.out.println("Find "+className);
-		
-		if( needsRewrite(className) == false)
-		{
-			// We delegate to the parent, not super. 
-			// Super means the loaded class would be bound in our class loader. 
-			// Delegation implies it is bound by the parent.
-			// We can have several sibling contextual loader, that can shared base types, e.g. ContextInfo, or 
-			// the type ContextualClassLoader itself. 
-			return this.getParent().loadClass(className);
-		}
-		
-		try {
-			CtClass clazz = findCtClass(className);
-			byte[] b = clazz.toBytecode();
-			return defineClass(className, b, 0, b.length);
-		} catch (CannotCompileException e) {
-			e.printStackTrace();
-			throw new ClassNotFoundException();
-		} catch (NotFoundException e) {
-			e.printStackTrace();
-			throw new ClassNotFoundException();
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new ClassNotFoundException();
-		}
-	}
-
-	private String rewriteName( String className ) {
-		return className + versionSuffix;
-	}
-	
-	private boolean needsRewrite( String className ) {
-		return className.startsWith("ch.unibe.iam.scg.test");
-	}
-	
-
-	// @TODO fix name should be the original
-	public Class resolve(String oldInstrumentedName)
-	{
-		try {
-			String originalName = oldInstrumentedName.substring(0, oldInstrumentedName.length() - versionSuffix.length() );
-			return this.loadClass(originalName+this.versionSuffix);
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException( "Could not find class", e );
-		}
+	public ContextClassLoader( String suffix ) {
+		super( suffix );
 	}
 	
 	public void synchronizeRead(ContextAware obj, String field ) {

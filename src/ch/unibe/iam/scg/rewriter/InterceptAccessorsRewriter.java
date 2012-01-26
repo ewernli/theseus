@@ -1,5 +1,6 @@
 package ch.unibe.iam.scg.rewriter;
 
+import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CodeConverter;
@@ -17,6 +18,8 @@ import javassist.expr.NewExpr;
 public class InterceptAccessorsRewriter implements ClassRewriter {
 	public void rewrite(CtClass ctClass) throws CannotCompileException
 	{
+		if( ctClass.isInterface() ) return;
+		
 		System.out.println( "-> Rewire accesses for "+ ctClass.getName() );
 		
 		 for (final CtBehavior ctMethod : ctClass.getDeclaredBehaviors()) {
@@ -27,7 +30,7 @@ public class InterceptAccessorsRewriter implements ClassRewriter {
 		 
 		 try {
 			 CodeConverter conv = new CodeConverter();
-			 CtClass indirectionClass = ClassPool.getDefault().get("ch.unibe.iam.scg.rewriter.ArrayInterceptor");
+			 CtClass indirectionClass = ClassPool.getDefault().get(ArrayInterceptor.class.getName());
 			 conv.replaceArrayAccess( indirectionClass, new CodeConverter.DefaultArrayAccessReplacementMethodNames());
 			 ctClass.instrument(conv);
 		} catch (NotFoundException e) {
@@ -71,7 +74,7 @@ class InterceptAccessorsEditor extends ExprEditor {
 	public void edit(NewArray a) throws CannotCompileException {
 		// Storing contextInfo at position 0 won't work because of types
 		// a.replace("$_ = $proceed($1+1);");
-		a.replace( "$_ = ($r) ch.unibe.iam.scg.rewriter.ArrayInterceptor.registerArray( $proceed($$) ); ");
+		a.replace( "$_ = ($r) "+ ArrayInterceptor.class.getName()+".registerArray( $proceed($$) ); ");
 	}
 	
     @Override

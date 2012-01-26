@@ -9,7 +9,7 @@ import ch.unibe.iam.scg.ContextAware;
 import ch.unibe.iam.scg.ContextClassLoader;
 import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
-import ch.unibe.iam.scg.rewriter.RenameDependenciesRewriter;
+import ch.unibe.iam.scg.rewriter.MapDependenciesRewriter;
 import ch.unibe.iam.scg.test.DynamicScope;
 
 import javassist.CannotCompileException;
@@ -23,25 +23,25 @@ import javassist.expr.ExprEditor;
 import javassist.expr.FieldAccess;
 import javassist.expr.NewExpr;
 import javassist.tools.web.Webserver;
+import junit.framework.TestCase;
 
-public class RunTests {
+public class RunTests extends TestCase {
 
 	ClassPool cp = ClassPool.getDefault();
 	
-	public static void main(String[] args) throws Exception {
-		new RunTests().test();
-	}
-	
-	public void test() throws Exception
+	public void testSuite() throws Exception
 	{
-//		testSubclass();
-//		testStatic();
-//		testIsolation();
-//		testCycle();
+		testSubclass();
+		testStatic();
+		testIsolation();
+		testCycle();
+		
 		testArray();
 		testMigNext();
 		testMigArray();
-//		testDynamicScope();
+
+		testDynamicScope();
+		testFrameworkClasses();
 	}
 	
 	public void testSubclass() throws Exception
@@ -131,7 +131,14 @@ public class RunTests {
 	
 	public void testFrameworkClasses() throws Exception
 	{
-		
+		ContextClassLoader loaderPrev = new ContextClassLoader("XX1");
+		loaderPrev.doDelegation = false;
+
+		Class clazz2 = loaderPrev.loadClass("ch.unibe.iam.scg.test.core.java.util.MapXX1");
+		//java.util.Map p;
+		Class clazz = loaderPrev.loadClass("ch.unibe.iam.scg.test.core.java.util.HashMapXX1");
+		Object map = clazz.newInstance();
+		System.out.println( map.getClass().toString());
 	}
 	
 	

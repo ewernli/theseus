@@ -30,9 +30,10 @@ import java.util.*;
  */
 public class RequestThread implements Runnable {
 
-    public RequestThread(Socket socket, File rootDir) {
+    public RequestThread(Socket socket, File rootDir, WebServer webServer ) {
         _socket = socket;
         _rootDir = rootDir;
+        _webServer = webServer;
     }
     
     // handles a connction from a client.
@@ -82,8 +83,9 @@ public class RequestThread implements Runnable {
                        "Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n" +
                        "\r\n" +
                        "<h1>Hello ABB</h1>" +
-                       "<h3>" + path + "</h3>" +
-                       "<h3>"+ this.getClass().toString() + "</h3>").getBytes());
+                       "<h3>URL: " + path + "</h3>" +
+                       "<h3>Server State #: " + _webServer.getCounter() + "</h3>" +
+                       "<h3>Server Class: "+ _webServer.getClass().toString() + "</h3>").getBytes());
             
             out.flush();
             _socket.close();
@@ -96,5 +98,5 @@ public class RequestThread implements Runnable {
     
     private Socket _socket;
     private File _rootDir;
-
+    private WebServer _webServer;
 }

@@ -17,6 +17,7 @@ $Id: WebServer.java,v 1.2 2004/02/01 13:37:35 pjm2 Exp $
 
 
 import java.io.*;
+import java.lang.reflect.Constructor;
 import java.net.*;
 import java.util.*;
 
@@ -51,6 +52,10 @@ public class WebServer {
         _port = port;
     }
     
+    public int getCounter() {
+    	return counter;
+    }
+    
     public void activate() throws WebServerException {
         try {
         	_serverSocket = new ServerSocket(_port);
@@ -68,15 +73,20 @@ public class WebServer {
             // Pass the socket to a new thread so that it can be dealt with
             // while we can go and get ready to accept another connection.
             Socket socket = _serverSocket.accept();
-            RequestThread reqRunnable = new RequestThread(socket, _rootDir);
+            RequestThread reqRunnable = new RequestThread(socket, _rootDir, this);
             new Thread( reqRunnable).start();
             
-            // Update itself
-            counter ++;
-            ContextClassLoader newContext = new ContextClassLoader( "$$" + counter );
+            // Load new context reflectively
+            Class contextClass = Class.forName("ch.unibe.iam.scg.ContextClassLoader");
+            Constructor ctr = contextClass.getConstructor( String.class);            
+            ContextClassLoader newContext = (ContextClassLoader) ctr.newInstance( "$$" + counter );
+            
+            // Migrate server thread to new context reflectively
             Runnable wsRunnable = new WebServerThread(this);
             Runnable newWsRunnable = (Runnable) ((ContextAware)wsRunnable).migrateToNext(newContext);
             new Thread( newWsRunnable).start();
+            counter ++;
+          
         }
         catch (Exception e) {
             throw new WebServerException("Error processing new connection: " + e, e);

@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import ch.unibe.iam.scg.ContextInfo;
+import ch.unibe.iam.scg.rewriter.helper.ReflectionHelper;
 
 
 import javassist.CannotCompileException;
@@ -29,6 +30,8 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 
 	public void rewrite(CtClass ctClass) throws CannotCompileException {
 		
+		if( ctClass.isInterface() ) return;
+		
 		System.out.println( "-> Write accessors for "+ ctClass.getName() );
 		
 		CtClass contextAwareInterface;
@@ -51,7 +54,7 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 				
 				String mig = "public ch.unibe.iam.scg.ContextAware migrateToNext( ch.unibe.iam.scg.ContextClassLoader nextLoader) { " +
 						"System.out.println(\"Migreate intance of "+ctClass.getName()+ "\");" +
-						"ch.unibe.iam.scg.ContextAware clone = ch.unibe.iam.scg.rewriter.ReflectionHelper.buildNewInstance( this, nextLoader );" +
+						"ch.unibe.iam.scg.ContextAware clone = "+ReflectionHelper.class.getName()+".buildNewInstance( this, nextLoader );" +
 						"clone.getContextInfo().prev = this; " +
 						"this.getContextInfo().next = clone;" +
 						"clone.getContextInfo().next = null; " +
