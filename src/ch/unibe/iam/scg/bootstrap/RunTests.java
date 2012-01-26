@@ -4,6 +4,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.rmi.UnexpectedException;
+import java.util.AbstractMap;
+import java.util.HashMap;
 
 import ch.unibe.iam.scg.ContextAware;
 import ch.unibe.iam.scg.ContextClassLoader;
@@ -133,10 +135,45 @@ public class RunTests extends TestCase {
 	{
 		ContextClassLoader loaderPrev = new ContextClassLoader("XX1");
 		loaderPrev.doDelegation = false;
-
 		Class clazz = loaderPrev.loadClass("ch.unibe.iam.scg.test.core.java.util.HashMapXX1");
 		Object map = clazz.newInstance();
 		System.out.println( "Yeah:"+ map.getClass().toString());
+		invoke2( map, "put", Object.class, Object.class, 1, 42 );
+		Object value = invoke1( map, "get" , Object.class,  1 );
+		assert( value == Integer.valueOf(42) );
+	}
+	
+	public void testBenchmark() throws Exception
+	{
+		long t1, t2;
+		Object map;
+		HashMap m;
+		
+		ContextClassLoader loaderPrev = new ContextClassLoader("XX1");
+		loaderPrev.doDelegation = false;
+		Class clazz = loaderPrev.loadClass("ch.unibe.iam.scg.test.core.java.util.HashMapXX1");
+		
+		System.out.println( "----" );
+		
+		for( int k=0; k<3; k++) {
+			map = clazz.newInstance();
+			t1 = System.currentTimeMillis();
+			for( int i=0; i < 100000; i++ ) {
+				invoke2( map, "put", Object.class, Object.class, 1, 42 );
+				Object value = invoke1( map, "get" , Object.class,  1 );
+			}
+			t1 = System.currentTimeMillis() - t1;
+			
+			map = new HashMap();
+			t2 = System.currentTimeMillis();
+			for( int i=0; i < 100000; i++ ) {
+				invoke2( map, "put", Object.class, Object.class, 1, 42 );
+				Object value = invoke1( map, "get" , Object.class,  1 );
+			}
+			t2 = System.currentTimeMillis() - t2;
+
+			System.out.println( "Instrumented: "+t1+", normal: "+t2);
+		}
 	}
 	
 	public void testInterface() throws Exception
@@ -159,5 +196,18 @@ public class RunTests extends TestCase {
 		Class clazz = receiver.getClass();
 		Method meth = clazz.getMethod( method, new Class[0] );
 		return meth.invoke( receiver, new Object[0] );
+	}
+	
+	private Object invoke1( Object receiver, String method, Class c1, Object p1 ) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, SecurityException, NoSuchMethodException
+	{
+		Class clazz = receiver.getClass();
+		Method meth = clazz.getMethod( method, new Class[ ] { c1 } );
+		return meth.invoke( receiver, new Object[]{ p1 } );
+	}
+	private Object invoke2( Object receiver, String method, Class c1, Class c2, Object p1, Object p2 ) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, SecurityException, NoSuchMethodException
+	{
+		Class clazz = receiver.getClass();
+		Method meth = clazz.getMethod( method, new Class[ ] { c1, c2 } );
+		return meth.invoke( receiver, new Object[]{ p1, p2 } );
 	}
 }

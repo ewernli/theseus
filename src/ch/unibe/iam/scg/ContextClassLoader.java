@@ -26,7 +26,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	}
 	
 	public void synchronizeRead(ContextAware obj, String field ) {
-		System.out.println("Synchronize read "+field);
+		///System.out.println("Synchronize read "+field);
 		try {
 			// Sync if dirty & clean flag, then proceeds with read
 			this.synchronize(obj, field);
@@ -42,7 +42,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	} 
 	
 	public void synchronizeWrite(ContextAware obj, String field ) {
-		System.out.println("Synchronize write "+field);
+		///System.out.println("Synchronize write "+field);
 		try {
 			//  proceeds with write, then invalidate
 			// @TODO atm, sync is not performed, it's not needed for one-to-one, but maybe for multi-fields mapping?
@@ -143,7 +143,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		}
 		else if( ! info.global )
 		{
-			System.out.println("Object is not global");
+			/// System.out.println("Object is not global");
 		}
 	}
 	
@@ -151,12 +151,12 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	
 	// OK to be static, there are built-in
 	public static void synchronizeArrayRead(Object obj, int pos ) {
-		System.out.println("Synchronize read[] "+pos);
+		///System.out.println("Synchronize read[] "+pos);
 		//this.synchronize(obj, field);
 	}
 	
 	public static void synchronizeArrayWrite(Object obj, int pos ) {
-		System.out.println("Synchronize write[] "+pos);
+		///System.out.println("Synchronize write[] "+pos);
 		//this.synchronize(obj, field);
 	}
 	
