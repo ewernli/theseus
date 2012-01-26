@@ -134,14 +134,18 @@ public class RunTests extends TestCase {
 		ContextClassLoader loaderPrev = new ContextClassLoader("XX1");
 		loaderPrev.doDelegation = false;
 
-		Class clazz2 = loaderPrev.loadClass("ch.unibe.iam.scg.test.core.java.util.MapXX1");
-		//java.util.Map p;
 		Class clazz = loaderPrev.loadClass("ch.unibe.iam.scg.test.core.java.util.HashMapXX1");
 		Object map = clazz.newInstance();
-		System.out.println( map.getClass().toString());
+		System.out.println( "Yeah:"+ map.getClass().toString());
 	}
 	
-	
+	public void testInterface() throws Exception
+	{
+		ContextClassLoader loader = new ContextClassLoader("$$1");
+		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.NodeService$$1");
+		Object node = invoke( clazz.newInstance(), "serve" );
+		assert( node.toString().matches( "\\[.*\\]") );
+	}
 	
 	public void testDynamicScope() throws Exception
 	{

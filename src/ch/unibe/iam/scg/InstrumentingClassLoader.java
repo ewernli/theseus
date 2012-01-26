@@ -68,14 +68,15 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			CtClass superClazz = null;
 			if( needsRewrite(superClassName))
 			{
-				 superClazz = findCtClass( superClassName + versionSuffix );
+				 superClazz = findCtClass( rewriteName(superClassName) );
 				 //superClazz.toClass();
+				 clazz.setSuperclass( superClazz );
 			}
-			else
+			/*else
 			{
 				 superClazz = cp.get(superClassName);
 			}
-			clazz.setSuperclass( superClazz );
+			clazz.setSuperclass( superClazz );*/
 			// @TODO document that superclass must haven been instrumented 
 	    	new GenerateAccessorsRewriter().rewrite(clazz);
 	    	new MapDependenciesRewriter( this, this.versionSuffix ).rewrite(clazz);		
