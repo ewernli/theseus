@@ -172,6 +172,7 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 							+ " }";
 					CtMethod getMethod = CtMethod.make(getterCode, ctClass);
 					getMethod.setModifiers( AccessFlag.STATIC );
+					getMethod.setModifiers( Modifier.setPublic( getMethod.getModifiers()));					
 					ctClass.addMethod(getMethod);
 	
 					try {
@@ -191,6 +192,7 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 							+ " }";
 					CtMethod setMethod = CtMethod.make( setterCode, ctClass );
 					setMethod.setModifiers( AccessFlag.STATIC );
+					setMethod.setModifiers( Modifier.setPublic( setMethod.getModifiers()));
 					ctClass.addMethod(setMethod);
 					
 					//Make field public

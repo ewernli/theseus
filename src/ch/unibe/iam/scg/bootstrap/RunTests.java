@@ -46,6 +46,7 @@ public class RunTests extends TestCase {
 		testDynamicScope();
 		testFrameworkClasses();
 		testArrayList();
+		testClassLiteral();
 	}
 	
 	public void testSubclass() throws Exception
@@ -172,6 +173,15 @@ public class RunTests extends TestCase {
 		invoke1( map, "add", Object.class, 42 );
 		Object value = invoke1( map, "get" , Object.class,  1 );
 		assert( value == Integer.valueOf(42) );
+	}
+	
+	public void testClassLiteral() throws Exception
+	{
+		ContextClassLoader loaderPrev = new ContextClassLoader("XX1");
+		Class clazz = loaderPrev.loadClass("ch.unibe.iam.scg.test.ClassLiteralXX1");
+		Object obj = clazz.newInstance();
+		Object selfType = invoke( obj, "newSelfType");
+		System.out.println( selfType.getClass().toString() );
 	}
 	
 	public void testBenchmark() throws Exception

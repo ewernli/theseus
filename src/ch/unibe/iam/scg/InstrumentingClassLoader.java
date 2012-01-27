@@ -130,9 +130,14 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 		}
 		
 		try {
+			
+			// The class we define must match the name that was provided,
+			// any renaming must happen before!
+			
 			CtClass clazz = findCtClass(className);
 			byte[] b = clazz.toBytecode();
 			return defineClass(className, b, 0, b.length);
+			
 		} catch (Throwable e) {
 			e.printStackTrace();
 			throw new ClassNotFoundException("Could not define" + className, e);

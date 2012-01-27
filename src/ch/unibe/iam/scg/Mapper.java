@@ -99,7 +99,9 @@ public class Mapper {
 				className.startsWith("sun.util") ) && 
 				//className.startsWith("sun.text") ) 
 				! ( className.equals("java.util.TimeZone") ||
-					className.equals("java.util.Date")	) 
+					className.equals("java.util.Date")||
+					className.startsWith("java.util.concurrent.atomic")  ||
+					className.equals("java.util.ResourceBundle")) 
 				;
 	}
 	
