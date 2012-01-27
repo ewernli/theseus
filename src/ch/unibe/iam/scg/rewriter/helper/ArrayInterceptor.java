@@ -30,6 +30,33 @@ public class ArrayInterceptor {
 		return ((Object[])array)[ pos ];
 	}
 	
+	public static void arrayWriteByteOrBoolean( Object array, int pos, byte value ) {
+		ContextClassLoader.synchronizeArrayWrite(array, pos);
+		if( array instanceof byte[] )
+			((byte[])array)[ pos ] = value;
+		else
+			((boolean[])array)[ pos ] = value > 0;
+	}
+	
+	public static byte arrayReadByteOrBoolean( Object array, int pos ) {
+		ContextClassLoader.synchronizeArrayRead(array, pos);
+		if( array instanceof byte[] )
+			return ((byte[])array)[ pos ];
+		else
+			return ((boolean[])array)[ pos ] ? (byte) 1 : (byte) 0;
+	}
+	
+	public static void arrayWriteChar( Object array, int pos, char value ) {
+		ContextClassLoader.synchronizeArrayWrite(array, pos);
+		((char[])array)[ pos ] = value;
+	}
+	
+	public static char arrayReadChar( Object array, int pos ) {
+		ContextClassLoader.synchronizeArrayRead(array, pos);
+		return ((char[])array)[ pos ];
+	}
+	
+	
 	// @TODO make it weak
 	static public ConcurrentHashMap<Object, ContextInfo> arrayContextInfo = new ConcurrentHashMap<Object, ContextInfo>();
 	

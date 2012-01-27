@@ -7,12 +7,14 @@ import java.util.List;
 import javassist.CannotCompileException;
 import javassist.ClassMap;
 import javassist.ClassPool;
+import javassist.CodeConverter;
 import javassist.CtClass;
 import javassist.CtConstructor;
 import javassist.NotFoundException;
 import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.MapDependenciesRewriter;
+import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 
 public class InstrumentingClassLoader  extends javassist.Loader {
 	private final String versionSuffix;
@@ -96,6 +98,20 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 						e2.printStackTrace();
 					}
 	    		};
+	    		
+	    		for( CtClass clazz2 : toRewire ) {
+	    			 try {
+	    				 CodeConverter conv = new CodeConverter();
+	    				 CtClass indirectionClass = ClassPool.getDefault().get(ArrayInterceptor.class.getName());
+	    				 conv.replaceArrayAccess( indirectionClass, new CodeConverter.DefaultArrayAccessReplacementMethodNames());
+	    				 clazz2.instrument(conv);
+	    			} catch (NotFoundException e2) {
+	    				throw new CannotCompileException(e2);
+	    			} catch (CannotCompileException e2) {
+	    				throw e2;
+	    			}
+	    		};
+	    		
 	    		toRewire.clear();
 	    	}
 		};

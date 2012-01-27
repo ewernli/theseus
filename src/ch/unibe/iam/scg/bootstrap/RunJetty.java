@@ -21,7 +21,7 @@ public class RunJetty {
 		TimeZone t;
 		
 		ContextClassLoader loader = new ContextClassLoader("$$1");
-		Class clazz = loader.loadClass( "org.mortbay.jetty.Main$$1" );
+		Class clazz = loader.loadClass( "ch.unibe.iam.scg.test.core.org.mortbay.jetty.Main$$1" );
 		Object server = clazz.newInstance();
 		invoke1( server, "main", String[].class, new String[]{ "9000" }); 
 	}

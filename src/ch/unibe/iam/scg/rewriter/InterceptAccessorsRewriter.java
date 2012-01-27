@@ -29,7 +29,7 @@ public class InterceptAccessorsRewriter implements ClassRewriter {
         	ctMethod.instrument( exprEditor );
         }
 		 //@TODO uncomment
-//		 
+		 
 //		 try {
 //			 CodeConverter conv = new CodeConverter();
 //			 CtClass indirectionClass = ClassPool.getDefault().get(ArrayInterceptor.class.getName());
