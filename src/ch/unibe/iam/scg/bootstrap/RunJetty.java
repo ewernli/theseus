@@ -2,6 +2,7 @@ package ch.unibe.iam.scg.bootstrap;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.TimeZone;
 
 import javassist.ClassPool;
 
@@ -17,6 +18,7 @@ public class RunJetty {
 	public void testServer() throws Exception
 	{
 		//org.mortbay.jetty.Main.main(new String[]{ "9000" } );
+		TimeZone t;
 		
 		ContextClassLoader loader = new ContextClassLoader("$$1");
 		Class clazz = loader.loadClass( "org.mortbay.jetty.Main$$1" );

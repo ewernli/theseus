@@ -92,9 +92,15 @@ public class Mapper {
 	};
 	
 	public static boolean needsRewrite(String className) {
-		return  className.startsWith("ch.unibe.iam.scg.test") ||
+		return  (className.startsWith("ch.unibe.iam.scg.test") ||
 				className.startsWith("java.util") || 
-				className.startsWith("org.mortbay");
+				//className.startsWith("java.text") ||
+				className.startsWith("org.mortbay") ||
+				className.startsWith("sun.util") ) && 
+				//className.startsWith("sun.text") ) 
+				! ( className.equals("java.util.TimeZone") ||
+					className.equals("java.util.Date")	) 
+				;
 	}
 	
 	public static String erase( String genericSignature ) {

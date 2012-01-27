@@ -1,6 +1,7 @@
 package ch.unibe.iam.scg.rewriter;
 
 import java.rmi.UnexpectedException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,6 +29,16 @@ import javassist.expr.NewExpr;
 
 public class GenerateAccessorsRewriter implements ClassRewriter {
 
+	private List<CtClass> allSuperinterfaces( CtClass ctClass ) throws NotFoundException{
+		CtClass currentClass = ctClass.getSuperclass();
+		List<CtClass> intfs = new ArrayList<CtClass>();
+		while( currentClass != null ) {
+			intfs.addAll( Arrays.asList( currentClass.getInterfaces()  )); 
+			currentClass = currentClass.getSuperclass();
+		}
+		return intfs;
+	}
+	
 	public void rewrite(CtClass ctClass) throws CannotCompileException {
 		
 		if( ctClass.isInterface() ) return;
@@ -37,7 +48,7 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 		CtClass contextAwareInterface;
 		try {
 			contextAwareInterface = ClassPool.getDefault().get("ch.unibe.iam.scg.ContextAware");
-			List<CtClass> intfs = Arrays.asList( ctClass.getSuperclass().getInterfaces() ); 
+			List<CtClass> intfs = allSuperinterfaces(ctClass); 
 			if( ! intfs.contains(contextAwareInterface)) {
 				
 				ctClass.addInterface( contextAwareInterface );
