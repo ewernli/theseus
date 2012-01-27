@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.rmi.UnexpectedException;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import ch.unibe.iam.scg.ContextAware;
@@ -44,6 +45,7 @@ public class RunTests extends TestCase {
 
 		testDynamicScope();
 		testFrameworkClasses();
+		testArrayList();
 	}
 	
 	public void testSubclass() throws Exception
@@ -55,6 +57,19 @@ public class RunTests extends TestCase {
 		System.out.println( node.toString() );
 		
 		Class clazz2 = loader.loadClass("ch.unibe.iam.scg.test.AnotherSubNode$$1");
+		Object node2 = clazz2.newInstance();
+		System.out.println( node2.toString() );	
+	}
+	
+	public void testConstructorSubclass() throws Exception
+	{
+		ClassLoader loader = new ContextClassLoader("$$1");
+		
+		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.SubWriteConstructor$$1");
+		Object node = clazz.newInstance();
+		System.out.println( node.toString() );
+		
+		Class clazz2 = loader.loadClass("ch.unibe.iam.scg.test.SubSubWriteConstructor$$1");
 		Object node2 = clazz2.newInstance();
 		System.out.println( node2.toString() );
 	
@@ -139,6 +154,22 @@ public class RunTests extends TestCase {
 		Object map = clazz.newInstance();
 		System.out.println( "Yeah:"+ map.getClass().toString());
 		invoke2( map, "put", Object.class, Object.class, 1, 42 );
+		Object value = invoke1( map, "get" , Object.class,  1 );
+		assert( value == Integer.valueOf(42) );
+	}
+	
+	
+	public void testArrayList() throws Exception
+	{
+	//	ArrayList<Object> l;
+	//	l = new ArrayList<Object>();
+		
+		ContextClassLoader loaderPrev = new ContextClassLoader("XX1");
+		loaderPrev.doDelegation = false;
+		Class clazz = loaderPrev.loadClass("ch.unibe.iam.scg.test.core.java.util.ArrayListXX1");
+		Object map = clazz.newInstance();
+		System.out.println( "Yeah:"+ map.getClass().toString());
+		invoke1( map, "add", Object.class, 42 );
 		Object value = invoke1( map, "get" , Object.class,  1 );
 		assert( value == Integer.valueOf(42) );
 	}

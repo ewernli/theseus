@@ -10,6 +10,7 @@ import javassist.CtField;
 import javassist.CtMember;
 import javassist.CtMethod;
 import javassist.NotFoundException;
+import javassist.bytecode.AccessFlag;
 import javassist.expr.ExprEditor;
 import javassist.expr.FieldAccess;
 import javassist.expr.NewArray;
@@ -27,15 +28,18 @@ public class InterceptAccessorsRewriter implements ClassRewriter {
             ExprEditor exprEditor = new InterceptAccessorsEditor( ctMethod );
         	ctMethod.instrument( exprEditor );
         }
-		 
-		 try {
-			 CodeConverter conv = new CodeConverter();
-			 CtClass indirectionClass = ClassPool.getDefault().get(ArrayInterceptor.class.getName());
-			 conv.replaceArrayAccess( indirectionClass, new CodeConverter.DefaultArrayAccessReplacementMethodNames());
-			 ctClass.instrument(conv);
-		} catch (NotFoundException e) {
-			throw new CannotCompileException(e);
-		}
+		 //@TODO uncomment
+//		 
+//		 try {
+//			 CodeConverter conv = new CodeConverter();
+//			 CtClass indirectionClass = ClassPool.getDefault().get(ArrayInterceptor.class.getName());
+//			 conv.replaceArrayAccess( indirectionClass, new CodeConverter.DefaultArrayAccessReplacementMethodNames());
+//			 ctClass.instrument(conv);
+//		} catch (NotFoundException e) {
+//			throw new CannotCompileException(e);
+//		} catch (CannotCompileException e) {
+//			throw e;
+//		}
 		 
 		 System.out.println( "<- Rewired accesses for "+ ctClass.getName() );
 	}
@@ -86,11 +90,13 @@ class InterceptAccessorsEditor extends ExprEditor {
         	String fieldClassName = fieldAccess.getField().getDeclaringClass().getName();
         	CtClass fieldClass = fieldAccess.getField().getDeclaringClass();
         	
+        	if( ( fieldAccess.getField().getModifiers() & AccessFlag.FINAL ) > 0 )
+        	{
+        		return;
+        	}
+        	
         	if( needsRewrite( fieldClassName, fieldName ) ) {
-				if( fieldName.contains("DEFAULT_FILES")){
-					int k=0;
-					k ++;
-				}
+        	
                 if ( classIsSubclassOf( ctMethod.getDeclaringClass(), fieldClass ) ) {
                     if ( isProperty( ctMethod.getName() )) {
                     	String property = propertyOfAccessor( ctMethod.getName() );

@@ -74,7 +74,7 @@ public class Mapper {
 		{
 			return oldName + versionSuffix; 
 		}
-		else
+		else 
 		{
 			return erase( "ch.unibe.iam.scg.test.core." + oldName ) + versionSuffix;
 		}
@@ -84,8 +84,7 @@ public class Mapper {
 		if ( newName.startsWith("ch.unibe.iam.scg.test.core.") )
 		{
 			return newName.substring( "ch.unibe.iam.scg.test.core.".length(), newName.length() - versionSuffix.length());
-		}
-		else
+		}else
 		{
 			return newName.substring(0, newName.length() - versionSuffix.length());
 		}
@@ -94,7 +93,8 @@ public class Mapper {
 	
 	public static boolean needsRewrite(String className) {
 		return  className.startsWith("ch.unibe.iam.scg.test") ||
-				className.startsWith("java.util");
+				className.startsWith("java.util") || 
+				className.startsWith("org.mortbay");
 	}
 	
 	public static String erase( String genericSignature ) {

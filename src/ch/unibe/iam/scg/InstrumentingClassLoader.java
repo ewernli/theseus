@@ -95,7 +95,8 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 						// TODO Auto-generated catch block
 						e2.printStackTrace();
 					}
-	    		}		
+	    		};
+	    		toRewire.clear();
 	    	}
 		};
 		
