@@ -25,129 +25,130 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		super( suffix );
 	}
 	
-	public void synchronizeRead(ContextAware obj, String field ) {
+	public void synchronizeRead(ContextAware obj, int selectedFieldPosition ) {
 		///System.out.println("Synchronize read "+field);
-		try {
-			// Sync if dirty & clean flag, then proceeds with read
-			this.synchronize(obj, field);
-		} catch (SecurityException e) {
-			throw new RuntimeException( "Cound not synchronize",e);
-		} catch (IllegalArgumentException e) {
-			throw new RuntimeException( "Cound not synchronize",e);
-		} catch (NoSuchFieldException e) {
-			throw new RuntimeException( "Cound not synchronize",e);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException( "Cound not synchronize",e);
-		}
+		// Sync if dirty & clean flag, then proceeds with read
+		this.synchronize(obj, selectedFieldPosition);
 	} 
 	
-	public void synchronizeWrite(ContextAware obj, String field ) {
+	public void synchronizeWrite(ContextAware obj, int selectedFieldPosition ) throws RuntimeException {
 		///System.out.println("Synchronize write "+field);
-		try {
-			//  proceeds with write, then invalidate
-			// @TODO atm, sync is not performed, it's not needed for one-to-one, but maybe for multi-fields mapping?
-			this.synchronize(obj, field);
-		} catch (SecurityException e) {
-			throw new RuntimeException( "Cound not synchronize",e);
-		} catch (IllegalArgumentException e) {
-			throw new RuntimeException( "Cound not synchronize",e);
-		} catch (NoSuchFieldException e) {
-			throw new RuntimeException( "Cound not synchronize",e);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException( "Cound not synchronize",e);
-		}
+		//  proceeds with write, then invalidate
+		// @TODO atm, sync is not performed, it's not needed for one-to-one, but maybe for multi-fields mapping?
+		this.synchronize(obj, selectedFieldPosition);
 	}
 	
 	
-	public void synchronize(ContextAware obj, String selectedField ) throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
-		ContextInfo info = obj.getContextInfo();
-		if( info.global  && info.dirty )
+	public void synchronize(ContextAware obj, int selectedFieldPosition ) throws RuntimeException {
+		try
 		{
-			if( info.next == null && info.prev != null )
-			{
-				// synchronize with reflection
-				System.out.println("Synchronize from ancestor");
-				
-				Object prev = info.prev;
-				for( Field field : prev.getClass().getFields() ) {
+			ContextInfo info = obj.getContextInfo();
 			
-					if( field.getName().equals( ClassRewriter.CONTEXT_INFO )) { continue; }
+			if( info.global )
+			{
+				int mask = (1<<selectedFieldPosition); 
+				
+				if( (info.dirty & mask ) > 0 ) {
 					
-					Field prevField = prev.getClass().getField(field.getName());
-					Field nextField = obj.getClass().getField(field.getName());
-					Object prevValue = prevField.get(prev);
-					if( prevValue == null ) {
-						nextField.set(obj, null );
+					if( info.next == null && info.prev != null )
+					{
+						synchronizeFromPrev(obj,info,selectedFieldPosition);
 					}
-					else if( prevValue instanceof ContextAware ) {
-						ContextAware prevAware = (ContextAware) prevValue;
-						
-						if( ! prevAware.getContextInfo().global ||
-								( prevAware.getContextInfo().global && prevAware.getContextInfo().next == null)) 
-							// this is an old migrated instance, it should be not global and prev=null, next=null
-							// but this is not the case because we don't have forced garbage collection
-						{
-							nextField.set(obj, prevAware.migrateToNext(this));
-							assert( prevAware.getContextInfo().global == true);
-						}
-						else {
-							nextField.set(obj, prevAware.getContextInfo().next );
-						}			
-						
-						// @TODO children can be array -- test for all types
-					} else if ( prevValue instanceof int[] ) {
-						int[] prevArray = (int[]) prevValue;
-						
-						if( ! ArrayInterceptor.contextInfoOfArray(prevValue).global )
-						{
-							nextField.set(obj, migrateIntArrayToNext(prevArray));
-							assert( ArrayInterceptor.contextInfoOfArray(prevValue).global == true);
-						}
-						else {
-							nextField.set(obj, ArrayInterceptor.contextInfoOfArray(prevValue).next );
-						}	
-						
-						// @TODO this include null -- is that correct?
-					} else if( prevValue.getClass().isArray() ){
-						throw new RuntimeException("Unsupported type");
+					else if ( info.prev == null && info.next != null)
+					{
+						synchronizeFromSucc(obj,info,selectedFieldPosition);
 					}
 					else
 					{
-						// primitive
-						nextField.set(obj, prevValue);
+						throw new RuntimeException( "Context information ares erroneous");
 					}
+					
+					// Clear the flag
+					info.dirty = info.dirty | selectedFieldPosition;
+				}
+				else 
+				{
+					System.out.println("Object is global but up-to-date");
 				}
 			}
-			else if ( info.prev == null && info.next != null)
+			else 
 			{
-				// synchronize with reflection
-				System.out.println("Synchronize from successor");
-				
-				Object next = info.next;
-				Field prevField = obj.getClass().getField(selectedField);
-				Field nextField = next.getClass().getField(selectedField);
-				Object nextValue = nextField.get(next);
-				prevField.set(obj, nextValue);
+				/// System.out.println("Object is not global");
 			}
-			else
-			{
-				throw new RuntimeException( "Ojbect context is erroneous");
-			}
-			
-			// @TODO Clean the flag
-			info.dirty = false;
 		}
-		else if( info.global && !info.dirty )
+		catch( Exception e )
 		{
-			System.out.println("Object is global but up-to-date");
-		}
-		else if( ! info.global )
-		{
-			/// System.out.println("Object is not global");
+			throw new RuntimeException( "Could not synchronize field "+selectedFieldPosition, e);
 		}
 	}
 	
-
+	public void synchronizeFromSucc(Object obj, ContextInfo info, int selectedFieldPosition) throws Exception {
+		// synchronize with reflection
+		System.out.println("Synchronize from successor");
+		
+		Object next = info.next;
+		Field prevField = obj.getClass().getFields()[ selectedFieldPosition ];
+		Field nextField = next.getClass().getFields()[ selectedFieldPosition ];
+		Object nextValue = nextField.get(next);
+		prevField.set(obj, nextValue);
+	}
+	
+	public void synchronizeFromPrev(Object obj, ContextInfo info, int selectedFieldPosition) throws Exception {
+		// synchronize with reflection
+		System.out.println("Synchronize from ancestor");
+		
+		Object prev = info.prev;
+		Field prevField = prev.getClass().getFields()[ selectedFieldPosition];
+	
+		if( prevField.getName().equals( ClassRewriter.CONTEXT_INFO )) 
+		{ 
+			return ;
+		}
+		
+		Field nextField = obj.getClass().getFields()[ selectedFieldPosition ];
+		Object prevValue = prevField.get(prev);
+		if( prevValue == null ) {
+			nextField.set(obj, null );
+		}
+		else if( prevValue instanceof ContextAware ) {
+			ContextAware prevAware = (ContextAware) prevValue;
+			
+			if( ! prevAware.getContextInfo().global ||
+					( prevAware.getContextInfo().global && prevAware.getContextInfo().next == null)) 
+				// this is an old migrated instance, it should be not global and prev=null, next=null
+				// but this is not the case because we don't have forced garbage collection
+			{
+				nextField.set(obj, prevAware.migrateToNext(this));
+				assert( prevAware.getContextInfo().global == true);
+			}
+			else {
+				nextField.set(obj, prevAware.getContextInfo().next );
+			}			
+			
+			// @TODO children can be array -- test for all types
+		} else if ( prevValue instanceof int[] ) {
+			int[] prevArray = (int[]) prevValue;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(prevValue).global )
+			{
+				nextField.set(obj, migrateIntArrayToNext(prevArray));
+				assert( ArrayInterceptor.contextInfoOfArray(prevValue).global == true);
+			}
+			else {
+				nextField.set(obj, ArrayInterceptor.contextInfoOfArray(prevValue).next );
+			}	
+			
+			// @TODO this include null -- is that correct?
+		} else if( prevValue.getClass().isArray() ){
+			throw new RuntimeException("Unsupported type");
+		}
+		else
+		{
+			// primitive
+			nextField.set(obj, prevValue);
+		}
+		
+	}
 	
 	// OK to be static, there are built-in
 	public static void synchronizeArrayRead(Object obj, int pos ) {
@@ -173,8 +174,8 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info2.global = true;
 		info1.next = array2;
 		info2.prev = array;
-		info2.dirty = true;
-		info1.dirty = false;
+		info2.dirty = 0xFFFF;
+		info1.dirty = 0x0000;
 		return array2;
 	}
 	

@@ -171,7 +171,7 @@ public class RunTests extends TestCase {
 		Object map = clazz.newInstance();
 		System.out.println( "Yeah:"+ map.getClass().toString());
 		invoke1( map, "add", Object.class, 42 );
-		Object value = invoke1( map, "get" , Object.class,  1 );
+		Object value = invoke1( map, "get" , int.class,  0 );
 		assert( value == Integer.valueOf(42) );
 	}
 	
