@@ -70,7 +70,8 @@ public class Mapper {
 	}
 	
 	public static String rewriteName( String oldName, String versionSuffix ){ 
-		if ( oldName.startsWith("ch.unibe.iam.scg.test") )
+		if ( oldName.startsWith("ch.unibe.iam.scg.test") || 
+			 oldName.startsWith("org.mortbay"))
 		{
 			return oldName + versionSuffix; 
 		}

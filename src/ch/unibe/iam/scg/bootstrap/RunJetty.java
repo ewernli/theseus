@@ -17,13 +17,12 @@ public class RunJetty {
 	
 	public void testServer() throws Exception
 	{
-		//org.mortbay.jetty.Main.main(new String[]{ "9000" } );
-		TimeZone t;
+		//org.mortbay.jetty.Main.main(new String[]{ "9000", "/Users/ewernli/Downloads/" } );
 		
 		ContextClassLoader loader = new ContextClassLoader("$$1");
 		Class clazz = loader.loadClass( "ch.unibe.iam.scg.test.core.org.mortbay.jetty.Main$$1" );
 		Object server = clazz.newInstance();
-		invoke1( server, "main", String[].class, new String[]{ "9000" }); 
+		invoke1( server, "main", String[].class, new String[]{ "9000", "/Users/ewernli/Downloads/"  }); 
 	}
 	
 	private Object invoke( Object receiver, String method ) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, SecurityException, NoSuchMethodException

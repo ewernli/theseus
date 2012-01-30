@@ -1,5 +1,6 @@
 package ch.unibe.iam.scg.rewriter;
 
+import ch.unibe.iam.scg.Mapper;
 import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
@@ -56,7 +57,7 @@ class InterceptAccessorsEditor extends ExprEditor {
 	
 	
 	private boolean needsRewrite( String className, String fieldName ) {
-		return className.startsWith("ch.unibe.iam.scg.test") && ! fieldName.equals( ClassRewriter.CONTEXT_INFO );
+		return Mapper.needsRewrite(className) && ! fieldName.equals( ClassRewriter.CONTEXT_INFO );
 	}
 	
 	 private boolean isProperty(String name) {
