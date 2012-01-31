@@ -3,6 +3,8 @@ package ch.unibe.iam.scg;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -11,6 +13,7 @@ import javassist.ClassMap;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtConstructor;
+import javassist.CtField;
 import javassist.CtMethod;
 import javassist.NotFoundException;
 import ch.unibe.iam.scg.rewriter.ClassRewriter;
@@ -20,6 +23,18 @@ import ch.unibe.iam.scg.rewriter.MapDependenciesRewriter;
 import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 
 public class ContextClassLoader extends InstrumentingClassLoader {
+	
+	private ContextClassLoader next;
+	
+	public void setNext( ContextClassLoader n )
+	{
+		next = n;
+	}
+	
+	public ContextClassLoader newNext() {
+		//String newSuffix = "$$" + String.valueOf( Integer.valueOf( this.suffix().substring(2) ).intValue() + 1 );
+		return next;
+	}
 	
 	public ContextClassLoader( String suffix ) {
 		super( suffix );
@@ -43,6 +58,11 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		try
 		{
 			ContextInfo info = obj.getContextInfo();
+			
+			if( info == null ) {
+				int k=0;
+				k++;
+			}
 			
 			if( info.global )
 			{
@@ -93,19 +113,31 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		prevField.set(obj, nextValue);
 	}
 	
+	private Field[] orderedFields( Field[] fields )
+	{
+		Arrays.sort( fields, new Comparator<Field>() {
+	
+			public int compare(Field o1, Field o2) {
+				return o1.getName().compareTo(o2.getName());
+			}
+			
+		});
+		return fields;
+	}
+	
 	public void synchronizeFromPrev(Object obj, ContextInfo info, int selectedFieldPosition) throws Exception {
 		// synchronize with reflection
 		System.out.println("Synchronize from ancestor");
 		
 		Object prev = info.prev;
-		Field prevField = prev.getClass().getFields()[ selectedFieldPosition];
+		Field prevField = orderedFields( prev.getClass().getFields() )[ selectedFieldPosition];
 	
 		if( prevField.getName().equals( ClassRewriter.CONTEXT_INFO )) 
 		{ 
 			return ;
 		}
 		
-		Field nextField = obj.getClass().getFields()[ selectedFieldPosition ];
+		Field nextField = orderedFields( obj.getClass().getFields() )[ selectedFieldPosition ];
 		Object prevValue = prevField.get(prev);
 		if( prevValue == null ) {
 			nextField.set(obj, null );
@@ -140,7 +172,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			
 			// @TODO this include null -- is that correct?
 		} else if( prevValue.getClass().isArray() ){
-			throw new RuntimeException("Unsupported type");
+			throw new RuntimeException("Unsupported type:" + prevValue.getClass().toString() );
 		}
 		else
 		{

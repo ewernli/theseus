@@ -103,6 +103,7 @@ public class Mapper {
 					className.equals("java.util.Date")||
 					className.startsWith("java.util.concurrent.atomic")  ||
 					className.equals("java.util.ResourceBundle") ||
+					className.equals("java.util.ResourceBundle$Control") ||
 					className.equals("java.util.Enumeration") ||
 					className.equals("java.util.Locale") 
 					) 

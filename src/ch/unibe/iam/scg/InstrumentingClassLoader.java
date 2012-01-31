@@ -11,6 +11,7 @@ import javassist.CodeConverter;
 import javassist.CtClass;
 import javassist.CtConstructor;
 import javassist.NotFoundException;
+import ch.unibe.iam.scg.rewriter.AddContextAwarenessRewriter;
 import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.MapDependenciesRewriter;
@@ -20,8 +21,16 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	private final String versionSuffix;
 	private List<CtClass> toRewire = new ArrayList<CtClass>();
 	
+	//private ClassPool cp = new ClassPool( ClassPool.getDefault() ); 
+	
+	public String suffix()
+	{
+		return versionSuffix;
+	}
+	
 	public InstrumentingClassLoader( String suffix )
 	{
+		//cp.appendSystemPath();
 		versionSuffix = suffix;
 	}
 
@@ -41,7 +50,7 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 		*/
 	}
 	
-	public CtClass findCtClass( String className ) throws ClassNotFoundException, CannotCompileException, NotFoundException
+	public synchronized CtClass findCtClass( String className ) throws ClassNotFoundException, CannotCompileException, NotFoundException
 	{
 		ClassPool cp = ClassPool.getDefault();
 		CtClass clazz = null;
@@ -68,6 +77,14 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			setClassName( clazz, className );
 			String superClassName = clazz.getSuperclass().getName();
 			CtClass superClazz = null;
+			
+			if( clazz.getName().contains("Arrays$ArrayList") ||
+					clazz.getName().contains("AbstractCollection") ||
+					clazz.getName().contains("AbstractList")) {
+				int k=0;
+				k++;
+			}
+			
 			if( needsRewrite(superClassName))
 			{
 				 superClazz = findCtClass( rewriteName(superClassName) );
@@ -80,12 +97,21 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			}
 			clazz.setSuperclass( superClazz );*/
 			// @TODO document that superclass must haven been instrumented 
-	    	new GenerateAccessorsRewriter().rewrite(clazz);
 	    	new MapDependenciesRewriter( this, this.versionSuffix ).rewrite(clazz);		
 			
 	    	// @TODO fix super ugly hack
 	    	if( oldSize == 0 ) {
+	    		
 	    		for( CtClass clazz2 : toRewire ) {
+	    			new AddContextAwarenessRewriter().rewrite(clazz2);
+	    		}
+	    		
+	    		for( CtClass clazz2 : toRewire ) {
+	    			new GenerateAccessorsRewriter().rewrite(clazz2);
+	    		}
+	    		
+	    		for( CtClass clazz2 : toRewire ) {
+	    			
 	    			new InterceptAccessorsRewriter().rewrite(clazz2);
 	    			try {
 	    				clazz2.writeFile();
@@ -177,7 +203,7 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	{
 		try {
 			String originalName = unrewriteName( oldInstrumentedName );
-			return this.loadClass(originalName+this.versionSuffix);
+			return this.loadClass(rewriteName(originalName));
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException( "Could not find class", e );
 		}
