@@ -1,6 +1,7 @@
 package ch.unibe.iam.scg;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -231,6 +232,9 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			// @TODO this include null -- is that correct?
 		} else if( prevValue.getClass().isArray() ){
 			throw new RuntimeException("Unsupported type:" + prevValue.getClass().toString() );
+		} else if( prevValue.getClass() == Class.class ){
+			Class newClass = this.resolve( ((Class)prevValue).getName());
+			nextField.set(obj, newClass);
 		}
 		else
 		{
@@ -256,7 +260,8 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	}
 	
 	public int[] migrateIntArrayToNext( int[] array ) {
-		int[] array2 = array.clone();
+		//@TODO should be new int[ array.length ]
+		int[] array2 = array.clone();  
 		ArrayInterceptor.registerArray(array2);
 		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
 		ContextInfo info2 = ArrayInterceptor.contextInfoOfArray(array2);
@@ -270,7 +275,9 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	}
 	
 	public Object[] migrateObjArrayToNext( Object[] array ) {
-		Object[] array2 = array.clone();
+		String oldTypeName = array.getClass().getComponentType().getName();
+		Class newTypeClass = this.resolve(oldTypeName);
+		Object array2 = Array.newInstance(newTypeClass, array.length);
 		ArrayInterceptor.registerArray(array2);
 		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
 		ContextInfo info2 = ArrayInterceptor.contextInfoOfArray(array2);
@@ -280,7 +287,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info2.prev = array;
 		info2.dirty = 0xFFFFFFFF;
 		info1.dirty = 0x0000;
-		return array2;
+		return (Object[]) array2;
 	}
 	
 	@Override

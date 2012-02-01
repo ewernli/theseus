@@ -178,6 +178,7 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			
 			CtClass clazz = findCtClass(className);
 			byte[] b = clazz.toBytecode();
+			clazz.defrost();
 			return defineClass(className, b, 0, b.length);
 			
 		} catch (Throwable e) {
@@ -198,12 +199,18 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 		return Mapper.needsRewrite(className);
 	}
 	
-	// @TODO fix name should be the original
+	// @TODO fix name should be the original, not the instrumented
 	public Class resolve(String oldInstrumentedName)
 	{
 		try {
-			String originalName = unrewriteName( oldInstrumentedName );
-			return this.loadClass(rewriteName(originalName));
+			if( oldInstrumentedName.contains("$$")) {
+				String originalName = unrewriteName( oldInstrumentedName );
+				return this.loadClass(rewriteName(originalName));
+			}
+			else
+			{
+				return this.loadClass(oldInstrumentedName);
+			}
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException( "Could not find class", e );
 		}
