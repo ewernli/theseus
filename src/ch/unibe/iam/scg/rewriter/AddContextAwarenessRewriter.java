@@ -81,7 +81,7 @@ public class AddContextAwarenessRewriter implements ClassRewriter {
 				"clone.getContextInfo().next = null; " +
 				"this.getContextInfo().prev = null;" +
 				"clone.getContextInfo().global = true;" +
-				"clone.getContextInfo().dirty = 0xFFFF;" +
+				"clone.getContextInfo().dirty = 0xFFFFFFFF;" +
 				"this.getContextInfo().global = true;" +
 				"this.getContextInfo().dirty = 0x0000;" +
 				"return clone; }";

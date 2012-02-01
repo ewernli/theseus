@@ -16,6 +16,7 @@ import javassist.CtConstructor;
 import javassist.CtField;
 import javassist.CtMethod;
 import javassist.NotFoundException;
+import javassist.bytecode.AccessFlag;
 import ch.unibe.iam.scg.rewriter.ClassRewriter;
 import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
@@ -60,13 +61,12 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			ContextInfo info = obj.getContextInfo();
 			
 			if( info == null ) {
-				int k=0;
-				k++;
+				throw new NullPointerException();
 			}
 			
 			if( info.global )
 			{
-				int mask = (1<<selectedFieldPosition); 
+				long mask = (1L<<selectedFieldPosition); 
 				
 				if( (info.dirty & mask ) > 0 ) {
 					
@@ -84,7 +84,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 					}
 					
 					// Clear the flag
-					info.dirty = info.dirty | selectedFieldPosition;
+					info.dirty = info.dirty ^ mask;
 				}
 				else 
 				{
@@ -113,16 +113,54 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		prevField.set(obj, nextValue);
 	}
 	
+	private int depthOf( Class c )
+	{
+		
+		if( c.getName().equals( "java.lang.Object") )
+			return 0;
+		else
+		{
+			if( c.getSuperclass() == null )
+			{
+				throw new NullPointerException();
+			}
+		
+			return 1 + depthOf( c.getSuperclass() );
+		}
+	}
+	
 	private Field[] orderedFields( Field[] fields )
 	{
 		Arrays.sort( fields, new Comparator<Field>() {
 	
 			public int compare(Field o1, Field o2) {
-				return o1.getName().compareTo(o2.getName());
+				int d1 = depthOf( o1.getDeclaringClass());
+				int d2 = depthOf( o2.getDeclaringClass());
+				if( d1 < d2 )
+					return -1 ;
+				else if ( d1 == d2 )
+					return o1.getName().compareTo(o2.getName());
+				else 
+					return 1;	
 			}
 			
 		});
 		return fields;
+	}
+	
+	private Field[] nonFinalfieldsOfClassesOnly( Class c ) 
+	{
+		Class current = c;
+		List<Field> fields = new ArrayList<Field>();
+		while( ! current.getName().equals( "java.lang.Object") )
+		{
+			for( Field f : current.getDeclaredFields() ) {
+				if(( f.getModifiers() & AccessFlag.FINAL ) == 0 )
+					fields.add(f);
+			}
+			current = current.getSuperclass();
+		}
+		return ( Field[] ) fields.toArray( new Field[0]);
 	}
 	
 	public void synchronizeFromPrev(Object obj, ContextInfo info, int selectedFieldPosition) throws Exception {
@@ -130,15 +168,22 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		System.out.println("Synchronize from ancestor");
 		
 		Object prev = info.prev;
-		Field prevField = orderedFields( prev.getClass().getFields() )[ selectedFieldPosition];
+		Field[] prevFields = orderedFields( nonFinalfieldsOfClassesOnly( prev.getClass() ) );
+		if( selectedFieldPosition > prevFields.length) {
+			throw new IndexOutOfBoundsException();
+		}
+		Field prevField = prevFields[ selectedFieldPosition];
 	
 		if( prevField.getName().equals( ClassRewriter.CONTEXT_INFO )) 
 		{ 
 			return ;
 		}
 		
-		Field nextField = orderedFields( obj.getClass().getFields() )[ selectedFieldPosition ];
+		Field nextField = orderedFields( nonFinalfieldsOfClassesOnly( obj.getClass() ) )[ selectedFieldPosition ];
 		Object prevValue = prevField.get(prev);
+		
+		System.out.println("Prev type:"+ ( prevValue==null?"null":prevValue.getClass().toString()));
+		
 		if( prevValue == null ) {
 			nextField.set(obj, null );
 		}
@@ -164,6 +209,19 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			if( ! ArrayInterceptor.contextInfoOfArray(prevValue).global )
 			{
 				nextField.set(obj, migrateIntArrayToNext(prevArray));
+				assert( ArrayInterceptor.contextInfoOfArray(prevValue).global == true);
+			}
+			else {
+				nextField.set(obj, ArrayInterceptor.contextInfoOfArray(prevValue).next );
+			}	
+			
+			
+		} else if ( prevValue instanceof Object[] ) {
+			Object[] prevArray = (Object[]) prevValue;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(prevValue).global )
+			{
+				nextField.set(obj, migrateObjArrayToNext(prevArray));
 				assert( ArrayInterceptor.contextInfoOfArray(prevValue).global == true);
 			}
 			else {
@@ -206,7 +264,21 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info2.global = true;
 		info1.next = array2;
 		info2.prev = array;
-		info2.dirty = 0xFFFF;
+		info2.dirty = 0xFFFFFFFF;
+		info1.dirty = 0x0000;
+		return array2;
+	}
+	
+	public Object[] migrateObjArrayToNext( Object[] array ) {
+		Object[] array2 = array.clone();
+		ArrayInterceptor.registerArray(array2);
+		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
+		ContextInfo info2 = ArrayInterceptor.contextInfoOfArray(array2);
+		info1.global = true;
+		info2.global = true;
+		info1.next = array2;
+		info2.prev = array;
+		info2.dirty = 0xFFFFFFFF;
 		info1.dirty = 0x0000;
 		return array2;
 	}

@@ -1,5 +1,6 @@
 package ch.unibe.iam.scg.rewriter;
 
+import java.lang.reflect.Field;
 import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,6 +71,29 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 		System.out.println( "<- Wrote accessors for "+ ctClass.getName() );
 	}
 
+	private int depthOf( CtClass c ) throws NotFoundException
+	{
+		if( c.getName().equals( "java.lang.Object") )
+			return 0;
+		else
+			return 1 + depthOf( c.getSuperclass() );
+	}
+	
+	private CtField[] nonFinalfieldsOfClassesOnly( CtClass c ) throws NotFoundException 
+	{
+		CtClass current = c;
+		List<CtField> fields = new ArrayList<CtField>();
+		while( ! current.getName().equals( "java.lang.Object") )
+		{
+			for( CtField f : current.getDeclaredFields() ) {
+				if(( f.getModifiers() & AccessFlag.FINAL ) == 0 )
+					fields.add(f);
+			}
+			current = current.getSuperclass();
+		}
+		return ( CtField[] ) fields.toArray( new CtField[0]);
+	}
+	
 	public void generateInstanceAccessor( CtClass ctClass, CtField ctField ) throws Exception
 	{
 		String fieldName = ctField.getName();
@@ -87,16 +111,28 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 		}
 		
 		
-		CtField[] orderedFields =  ctClass.getFields(); 
+		CtField[] orderedFields =  nonFinalfieldsOfClassesOnly ( ctClass ); 
 		Arrays.sort( orderedFields, new Comparator<CtField>() {
 
-			public int compare(CtField o1, CtField o2) {
-				return o1.getName().compareTo(o2.getName());
+			public int compare(CtField o1, CtField o2) {			
+				try {
+					int d1 = depthOf( o1.getDeclaringClass());
+					int d2 = depthOf( o2.getDeclaringClass());
+					
+					if( d1 < d2 )
+						return -1 ;
+					else if ( d1 == d2 )
+						return o1.getName().compareTo(o2.getName());
+					else 
+						return 1;	
+				} catch (NotFoundException e) {
+					throw new RuntimeException("Error when sorting", e);
+				}
 			}
 			
 		});
 		
-		if( ctClass.getName().contains("AbstractConnector")) 
+		if( ctField.getName().contains("_server") ) 
 		{
 			int k=0;
 			k++;
