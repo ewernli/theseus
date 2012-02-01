@@ -57,11 +57,11 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 		try
 		{
 			clazz = cp.get(className);
-			System.out.println("Found CtFind "+className);
+			//System.out.println("Found CtFind "+className);
 		}
 		catch( NotFoundException e )
 		{
-			System.out.println("Did not CtFind "+className);	
+			//System.out.println("Did not CtFind "+className);	
 			String unversionedName = unrewriteName( className );
 			try {
 				clazz = cp.get(unversionedName);
@@ -152,14 +152,14 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	protected synchronized Class<?> loadClass(String name, boolean resolve)
 	throws ClassNotFoundException
      {
-		System.out.println("Load "+name );
+		//System.out.println("Load "+name );
 		return super.loadClass(name, resolve);
 	}
 
 	@Override
 	protected Class<?> findClass(String className) throws ClassNotFoundException {
 		
-		System.out.println("Find "+className);
+		//System.out.println("Find "+className);
 		
 		if( needsRewrite(className) == false)
 		{

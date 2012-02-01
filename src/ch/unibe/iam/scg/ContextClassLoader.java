@@ -89,7 +89,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				}
 				else 
 				{
-					System.out.println("Object is global but up-to-date");
+					// System.out.println("Object is global but up-to-date");
 				}
 			}
 			else 
@@ -105,7 +105,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	
 	public void synchronizeFromSucc(Object obj, ContextInfo info, int selectedFieldPosition) throws Exception {
 		// synchronize with reflection
-		System.out.println("Synchronize from successor");
+		// System.out.println("Synchronize from successor");
 		
 		Object next = info.next;
 		Field prevField = obj.getClass().getFields()[ selectedFieldPosition ];
@@ -166,7 +166,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	
 	public void synchronizeFromPrev(Object obj, ContextInfo info, int selectedFieldPosition) throws Exception {
 		// synchronize with reflection
-		System.out.println("Synchronize from ancestor");
+		// System.out.println("Synchronize from ancestor");
 		
 		Object prev = info.prev;
 		Field[] prevFields = orderedFields( nonFinalfieldsOfClassesOnly( prev.getClass() ) );
@@ -183,7 +183,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		Field nextField = orderedFields( nonFinalfieldsOfClassesOnly( obj.getClass() ) )[ selectedFieldPosition ];
 		Object prevValue = prevField.get(prev);
 		
-		System.out.println("Prev type:"+ ( prevValue==null?"null":prevValue.getClass().toString()));
+		//System.out.println("Prev type:"+ ( prevValue==null?"null":prevValue.getClass().toString()));
 		
 		if( prevValue == null ) {
 			nextField.set(obj, null );

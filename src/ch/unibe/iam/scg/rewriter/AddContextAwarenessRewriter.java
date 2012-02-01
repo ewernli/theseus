@@ -35,7 +35,7 @@ public class AddContextAwarenessRewriter implements ClassRewriter {
 		
 		if( ctClass.isInterface() ) return;
 		
-		System.out.println( "-> Write awareness for "+ ctClass.getName() );
+		//System.out.println( "-> Write awareness for "+ ctClass.getName() );
 		
 		try {
 			
@@ -69,7 +69,7 @@ public class AddContextAwarenessRewriter implements ClassRewriter {
 			throw new CannotCompileException( "Cound not contexutalize class", e);
 		}
 		
-		System.out.println( "<- Write awareness for "+ ctClass.getName() );
+		// System.out.println( "<- Write awareness for "+ ctClass.getName() );
 	}
 
 
@@ -89,7 +89,7 @@ public class AddContextAwarenessRewriter implements ClassRewriter {
 		ctClass.addMethod(getMethod);
 		
 		String mig = "public ch.unibe.iam.scg.ContextAware migrateToNext( ch.unibe.iam.scg.ContextClassLoader nextLoader) { " +
-				"System.out.println(\"Migreate intance of "+ctClass.getName()+ "\");" +
+				//"System.out.println(\"Migrate intance of "+ctClass.getName()+ "\");" +
 				"ch.unibe.iam.scg.ContextAware clone = "+ReflectionHelper.class.getName()+".buildNewInstance( this, nextLoader );" +
 				"clone.getContextInfo().prev = this; " +
 				"this.getContextInfo().next = clone;" +

@@ -64,7 +64,7 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 			
 			if( ctClass.isInterface() ) return;
 			
-			System.out.println( "-> Write accessors for "+ ctClass.getName() );
+			// System.out.println( "-> Write accessors for "+ ctClass.getName() );
 	
 			// Generate constructor, if not already existing
 			ensureConstructor( ctClass );
@@ -85,7 +85,7 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 			throw new CannotCompileException("Error in GenerateAccessors", e);
 		}
 
-		System.out.println( "<- Wrote accessors for "+ ctClass.getName() );
+		// System.out.println( "<- Wrote accessors for "+ ctClass.getName() );
 	}
 
 	private int depthOf( CtClass c ) throws NotFoundException

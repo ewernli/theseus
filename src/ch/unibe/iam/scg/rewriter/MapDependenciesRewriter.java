@@ -22,7 +22,7 @@ public class MapDependenciesRewriter implements ClassRewriter {
 	}
 
 	public void rewrite(CtClass ctClass) throws CannotCompileException {
-		System.out.println( "-> Remap dependencies for "+ ctClass.getName() );
+		// System.out.println( "-> Remap dependencies for "+ ctClass.getName() );
 		
 		ctClass.replaceClassName( new Mapper.NameAndLoaderClassMap(versionSuffix, loader) );
 		/*for (final CtBehavior ctMethod : ctClass.getDeclaredBehaviors()) {
@@ -31,7 +31,7 @@ public class MapDependenciesRewriter implements ClassRewriter {
 			ctMethod.instrument(exprEditor);
 		}*/
 
-		System.out.println( "<- Remaped dependencies for "+ ctClass.getName() );
+		// System.out.println( "<- Remaped dependencies for "+ ctClass.getName() );
 	}
 
 	class InterceptConstructorEditor extends ExprEditor {
@@ -59,7 +59,7 @@ public class MapDependenciesRewriter implements ClassRewriter {
 			String fieldClassName = newInstance.getClassName();
 			if (needsRewrite(fieldClassName)
 					&& !fieldClassName.endsWith(versionSuffix)) {
-				System.out.println("Class" + newInstance.getClassName());
+				//System.out.println("Class" + newInstance.getClassName());
 				try {
 					loader.findCtClass(  rewriteName(fieldClassName) );
 				} catch (ClassNotFoundException e) {

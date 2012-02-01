@@ -22,10 +22,10 @@ public class InterceptAccessorsRewriter implements ClassRewriter {
 	{
 		if( ctClass.isInterface() ) return;
 		
-		System.out.println( "-> Rewire accesses for "+ ctClass.getName() );
+		// System.out.println( "-> Rewire accesses for "+ ctClass.getName() );
 		
 		 for (final CtBehavior ctMethod : ctClass.getDeclaredBehaviors()) {
-        	System.out.println( "Method:" + ctMethod.getName());
+        	//System.out.println( "Method:" + ctMethod.getName());
             ExprEditor exprEditor = new InterceptAccessorsEditor( ctMethod );
         	ctMethod.instrument( exprEditor );
         }
@@ -42,7 +42,7 @@ public class InterceptAccessorsRewriter implements ClassRewriter {
 //			throw e;
 //		}
 		 
-		 System.out.println( "<- Rewired accesses for "+ ctClass.getName() );
+		 // System.out.println( "<- Rewired accesses for "+ ctClass.getName() );
 	}
 }
 
@@ -84,7 +84,7 @@ class InterceptAccessorsEditor extends ExprEditor {
 	
     @Override
     public void edit(FieldAccess fieldAccess) throws CannotCompileException {
-    	System.out.println( "Field:" + fieldAccess.getFieldName());
+    	//System.out.println( "Field:" + fieldAccess.getFieldName());
         try {
 
         	String fieldName = fieldAccess.getFieldName();
