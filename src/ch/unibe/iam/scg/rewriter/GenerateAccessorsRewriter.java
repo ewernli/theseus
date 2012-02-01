@@ -31,28 +31,46 @@ import javassist.expr.NewExpr;
 
 public class GenerateAccessorsRewriter implements ClassRewriter {
 
+	private void ensureConstructor(CtClass ctClass) throws CannotCompileException, NotFoundException
+	{
+		CtClass contextAwareInterface = ClassPool.getDefault().get("ch.unibe.iam.scg.ContextAware");
+		CtClass contextInfoType = ClassPool.getDefault().get("ch.unibe.iam.scg.ContextInfo");
+		
+		if( ! Arrays.asList(ctClass.getInterfaces()).contains(contextAwareInterface) )
+		{
+			boolean found = false;
+			for( CtConstructor cst : ctClass.getConstructors() )
+			{
+				if( cst.getParameterTypes().length == 1 && 
+					cst.getParameterTypes()[0] == contextInfoType )
+					found = true;
+			}
+			
+			if( ! found ) {
+				ensureConstructor(ctClass.getSuperclass());
+				
+				String constructor = "public  "+ctClass.getSimpleName()+"(ch.unibe.iam.scg.ContextInfo info) { " +
+				"super( info );" +
+				"}";
+				CtConstructor constructorMethod = CtNewConstructor.make(constructor, ctClass);
+				constructorMethod.setModifiers( Modifier.setPublic( constructorMethod.getModifiers()));
+				ctClass.addConstructor(constructorMethod);
+			}
+		}
+	}
 	
 	public void rewrite(CtClass ctClass) throws CannotCompileException {
+		try {
+			
+			if( ctClass.isInterface() ) return;
+			
+			System.out.println( "-> Write accessors for "+ ctClass.getName() );
+	
+			// Generate constructor, if not already existing
+			ensureConstructor( ctClass );
 		
-		if( ctClass.isInterface() ) return;
-		
-		System.out.println( "-> Write accessors for "+ ctClass.getName() );
-		
-		// Make the class public
-		ctClass.setModifiers( Modifier.setPublic(ctClass.getModifiers()));
-		
-		// Make sure the constructor exists for all instrumented classes
-		String constructor = "public  "+ctClass.getSimpleName()+"(ch.unibe.iam.scg.ContextInfo info) { " +
-		"this." + ClassRewriter.CONTEXT_INFO + " = info;" +
-		"}";
-		CtConstructor constructorMethod = CtNewConstructor.make(constructor, ctClass);
-		constructorMethod.setModifiers( Modifier.setPublic( constructorMethod.getModifiers()));
-		ctClass.addConstructor(constructorMethod);
-
-		// Generate getter/setter
-		for (CtField ctField : ctClass.getDeclaredFields()) {
-			try {
-				
+			// Generate getter/setter
+			for (CtField ctField : ctClass.getDeclaredFields()) {			
 				boolean isStatic = (ctField.getModifiers() &  AccessFlag.STATIC) == AccessFlag.STATIC;
 				
 				if( ! isStatic ) {
@@ -62,10 +80,9 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 				{
 					generateClassAccessor( ctClass, ctField );
 				}
-				
-			} catch (Exception e) {
-				throw new CannotCompileException("Error in PropertiesEnhancer", e);
 			}
+		} catch (Exception e) {
+			throw new CannotCompileException("Error in GenerateAccessors", e);
 		}
 
 		System.out.println( "<- Wrote accessors for "+ ctClass.getName() );

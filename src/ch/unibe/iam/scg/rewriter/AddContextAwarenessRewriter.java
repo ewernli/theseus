@@ -10,8 +10,10 @@ import ch.unibe.iam.scg.rewriter.helper.ReflectionHelper;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtClass;
+import javassist.CtConstructor;
 import javassist.CtField;
 import javassist.CtMethod;
+import javassist.CtNewConstructor;
 import javassist.Modifier;
 import javassist.NotFoundException;
 import javassist.CtField.Initializer;
@@ -36,19 +38,32 @@ public class AddContextAwarenessRewriter implements ClassRewriter {
 		System.out.println( "-> Write awareness for "+ ctClass.getName() );
 		
 		try {
-			CtClass contextAwareInterface = 
-				ClassPool.getDefault().get("ch.unibe.iam.scg.ContextAware");
 			
+			
+			// Make the class public
+			ctClass.setModifiers( Modifier.setPublic(ctClass.getModifiers()));
+			
+			// Add interface if necessary, and appropriate constructor
 			CtClass superclass = ctClass.getSuperclass();
-			if( ! Mapper.needsRewrite(superclass.getName())) {			
+			//@TODO checking based on name is a bit hackish
+			if( ! Mapper.needsRewrite(superclass.getName())) {	
+				
 				generateContextGlueCode( ctClass );			
-				CtClass[] newIntfs = ctClass.getInterfaces();
+				
+				// Make sure the constructor exists for all instrumented classes
+				String constructor = "public  "+ctClass.getSimpleName()+"(ch.unibe.iam.scg.ContextInfo info) { " +
+				"this." + ClassRewriter.CONTEXT_INFO + " = info;" +
+				"}";
+				CtConstructor constructorMethod = CtNewConstructor.make(constructor, ctClass);
+				constructorMethod.setModifiers( Modifier.setPublic( constructorMethod.getModifiers()));
+				ctClass.addConstructor(constructorMethod);
 			}
 			
 			for( CtField ctField : ctClass.getDeclaredFields() ) {
 				//Make field public
 				ctField.setModifiers( Modifier.setPublic( ctField.getModifiers()));
 			}
+			
 			
 		} catch (Exception e) {
 			throw new CannotCompileException( "Cound not contexutalize class", e);
