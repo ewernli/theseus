@@ -17,6 +17,7 @@ import javassist.CtNewConstructor;
 import javassist.Modifier;
 import javassist.NotFoundException;
 import javassist.CtField.Initializer;
+import javassist.bytecode.AccessFlag;
 
 public class AddContextAwarenessRewriter implements ClassRewriter {
 
@@ -60,8 +61,9 @@ public class AddContextAwarenessRewriter implements ClassRewriter {
 			}
 			
 			for( CtField ctField : ctClass.getDeclaredFields() ) {
-				//Make field public
+				//Make field public & non-final
 				ctField.setModifiers( Modifier.setPublic( ctField.getModifiers()));
+				ctField.setModifiers(  ctField.getModifiers() &  ~AccessFlag.FINAL );
 			}
 			
 			

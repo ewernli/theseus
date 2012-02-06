@@ -296,10 +296,5 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		super.finalize();
 	}
 	
-	public void perform( Runnable action ) throws Exception {
-		// @TODO ugly type machinery, but that should work after the compilation
-		Runnable a2 = (Runnable) ((ContextAware) action).migrateToNext(this);
-		a2.run();
-	}
 	
 }

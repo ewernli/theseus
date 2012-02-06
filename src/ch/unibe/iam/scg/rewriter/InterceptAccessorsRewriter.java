@@ -110,6 +110,12 @@ class InterceptAccessorsEditor extends ExprEditor {
                 }
 
 
+                if( fieldName.equals("this$0") || fieldName.startsWith("val$")) {
+                	if( fieldAccess.isWriter() ) {
+                		return; // these values are set in the synthetic constructor, and we can not easily override these writes, for some unkown reasons
+                	}
+                }
+                
             	String propertyName = 
 						fieldName.substring(0, 1).toUpperCase()
 						+ fieldName.substring(1);

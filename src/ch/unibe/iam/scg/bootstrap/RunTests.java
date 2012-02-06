@@ -228,8 +228,13 @@ public class RunTests extends TestCase {
 	public void testDynamicScope() throws Exception
 	{
 		ContextClassLoader loader = new ContextClassLoader("$$1");
+		ContextClassLoader loaderNext = new ContextClassLoader("$$2");
+		
 		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.DynamicScope$$1");
-		invoke( clazz.newInstance(), "test" );
+		ContextAware closure = (ContextAware) clazz.newInstance();
+		invoke( closure, "test" );
+		ContextAware nodeNext = closure.migrateToNext( loaderNext );
+		invoke( nodeNext, "test" );
 	}
 	
 	private Object invoke( Object receiver, String method ) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, SecurityException, NoSuchMethodException

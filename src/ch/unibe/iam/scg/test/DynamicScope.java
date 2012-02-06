@@ -6,14 +6,19 @@ import ch.unibe.iam.scg.ContextInfo;
 import ch.unibe.iam.scg.ContextualRunnable;
 
 public class DynamicScope {
+	
+	private Dynamic dyn = new Dynamic();
+	
+	class Dynamic implements Runnable
+	{
+		public void run() {
+			System.out.println( "Dynamic "+ DynamicScope.this.getClass().getName());
+		}
+	}
+	
 	public void test() throws Exception
 	{
 		final ContextClassLoader loader = (ContextClassLoader) this.getClass().getClassLoader();
-		loader.perform(new Runnable() {
-			
-			public void run() {
-				System.out.println( "Dynamic "+ loader.getClass().getName());
-			}
-		});
+		dyn.run();
 	}
 }
