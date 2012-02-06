@@ -152,7 +152,7 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	protected synchronized Class<?> loadClass(String name, boolean resolve)
 	throws ClassNotFoundException
      {
-		//System.out.println("Load "+name );
+		System.out.println("Load "+name );
 		return super.loadClass(name, resolve);
 	}
 

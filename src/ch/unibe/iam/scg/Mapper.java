@@ -93,7 +93,7 @@ public class Mapper {
 	};
 	
 	public static boolean needsRewrite(String className) {
-		return  (className.startsWith("ch.unibe.iam.scg.test") ||
+		/*return  (className.startsWith("ch.unibe.iam.scg.test") ||
 				className.startsWith("java.util") || 
 				//className.startsWith("java.text") ||
 				className.startsWith("org.mortbay") ||
@@ -107,7 +107,23 @@ public class Mapper {
 					className.equals("java.util.Enumeration") ||
 					className.equals("java.util.Locale") 
 					) 
-				;
+				; */
+		
+		return ! ( 
+				className.equals("java.lang.Object") ||
+				( className.startsWith("ch.unibe.iam.scg.") && 
+						!className.startsWith("ch.unibe.iam.scg.test")) ||
+				className.startsWith("java.lang") ||
+				className.startsWith("java.io") ||
+				className.startsWith("java.nio") ||
+				className.startsWith("sun.reflect") ||
+				className.equals("java.util.TimeZone") ||
+				className.equals("java.util.Date")||
+				className.startsWith("java.util.concurrent.atomic")  ||
+				className.equals("java.util.ResourceBundle") ||
+				className.equals("java.util.ResourceBundle$Control") ||
+				className.equals("java.util.Enumeration") ||
+				className.equals("java.util.Locale") );
 	}
 	
 	public static String erase( String genericSignature ) {

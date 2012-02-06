@@ -189,6 +189,8 @@ public class RunTests extends TestCase {
 		long t1, t2;
 		Object map;
 		HashMap m;
+		Method put ;
+		Method get ;
 		
 		ContextClassLoader loaderPrev = new ContextClassLoader("XX1");
 		loaderPrev.doDelegation = false;
@@ -198,18 +200,28 @@ public class RunTests extends TestCase {
 		
 		for( int k=0; k<3; k++) {
 			map = clazz.newInstance();
+			put = clazz.getMethod("put", Object.class, Object.class );
+			get = clazz.getMethod("get", Object.class );
 			t1 = System.currentTimeMillis();
 			for( int i=0; i < 100000; i++ ) {
-				invoke2( map, "put", Object.class, Object.class, 1, 42 );
-				Object value = invoke1( map, "get" , Object.class,  1 );
+				put.invoke(map, 1, 42 );
+				Object value = get.invoke(map, 1);
+				//invoke2( map, "put", Object.class, Object.class, 1, 42 );
+				//Object value = invoke1( map, "get" , Object.class,  1 );
+				assert( value == Integer.valueOf(42) );
 			}
 			t1 = System.currentTimeMillis() - t1;
 			
 			map = new HashMap();
+			put = HashMap.class.getMethod("put", Object.class, Object.class );
+			get = HashMap.class.getMethod("get", Object.class );
 			t2 = System.currentTimeMillis();
 			for( int i=0; i < 100000; i++ ) {
-				invoke2( map, "put", Object.class, Object.class, 1, 42 );
-				Object value = invoke1( map, "get" , Object.class,  1 );
+				put.invoke(map, 1, 42 );
+				Object value = get.invoke(map, 1);
+				//invoke2( map, "put", Object.class, Object.class, 1, 42 );
+				//Object value = invoke1( map, "get" , Object.class,  1 );
+				assert( value == Integer.valueOf(42) );
 			}
 			t2 = System.currentTimeMillis() - t2;
 

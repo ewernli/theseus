@@ -66,9 +66,16 @@ class InterceptAccessorsEditor extends ExprEditor {
 	  }
 	 
 	 private String propertyOfAccessor(String accessor) {
+		 try
+		 {
 		 String propertyName = ctMethod.getName().substring(ClassRewriter.GETTER_PREFIX.length());
          propertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1);
          return propertyName;
+		 } catch (RuntimeException e)
+		 {
+			 System.out.println(accessor);
+			 throw e;
+		 }
 	 }
 	 
 	private boolean classIsSubclassOf( CtClass subclass, CtClass superclass ) {
