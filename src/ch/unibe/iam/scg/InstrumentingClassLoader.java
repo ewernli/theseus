@@ -68,7 +68,8 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			}
 			catch( NotFoundException ex )
 			{
-				throw ex;
+				//throw new ClassNotFoundException("Could not load class "+className, e);
+				return null;
 			}
 			// @TODO fix hack
 			int oldSize = toRewire.size();
@@ -158,7 +159,7 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	protected synchronized Class<?> loadClass(String name, boolean resolve)
 	throws ClassNotFoundException
      {
-		System.out.println("Load "+name );
+	//	System.out.println("Load "+name );
 		return super.loadClass(name, resolve);
 	}
 
@@ -183,6 +184,8 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			// any renaming must happen before!
 			
 			CtClass clazz = findCtClass(className);
+			if( clazz == null ) return null;
+			
 			byte[] b = clazz.toBytecode();
 			clazz.defrost();
 			return defineClass(className, b, 0, b.length);

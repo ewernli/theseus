@@ -115,8 +115,19 @@ public class Mapper {
 						!className.startsWith("ch.unibe.iam.scg.test")) ||
 				className.startsWith("java.lang") ||
 				className.startsWith("java.io") ||
+				className.startsWith("java.net") ||
 				className.startsWith("java.nio") ||
 				className.startsWith("sun.reflect") ||
+				className.startsWith("sun.util.calendar") ||
+				className.equals("java.util.Calendar") ||
+				className.startsWith("java.util.GregorianCalendar" ) ||
+				className.startsWith("sun.util.BuddhistCalendar") ||
+				className.startsWith("java.util.Currency") ||
+				className.equals("java.security.AccessController") ||
+				className.equals("java.security.PrivilegedAction") ||
+				className.equals("java.security.PrivilegedExceptionAction") ||
+				className.startsWith("sun.misc") ||
+				className.startsWith("java.util.concurrent.locks") ||
 				className.equals("java.util.TimeZone") ||
 				className.equals("java.util.Date")||
 				className.startsWith("java.util.concurrent.atomic")  ||

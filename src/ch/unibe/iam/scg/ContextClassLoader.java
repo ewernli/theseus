@@ -292,7 +292,8 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	
 	@Override
 	protected void finalize() throws Throwable {
-		// TODO Auto-generated method stub
+		
+		System.out.println("*****Finalized");
 		super.finalize();
 	}
 	
