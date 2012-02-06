@@ -113,6 +113,25 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	    		for( CtClass clazz2 : toRewire ) {
 	    			
 	    			new InterceptAccessorsRewriter().rewrite(clazz2);
+	    		};
+	    		
+	    		for( CtClass clazz2 : toRewire ) {
+	    			 try {
+	    				 if( clazz2.getName().contains("HashMap")) {
+	    					 int k=0; k++;
+	    				 }
+	    				 CodeConverter conv = new CodeConverter();
+	    				 CtClass indirectionClass = ClassPool.getDefault().get(ArrayInterceptor.class.getName());
+	    				 conv.replaceArrayAccess( indirectionClass, new CodeConverter.DefaultArrayAccessReplacementMethodNames());
+	    				 clazz2.instrument(conv);
+	    			} catch (NotFoundException e2) {
+	    				throw new CannotCompileException(e2);
+	    			} catch (CannotCompileException e2) {
+	    				throw e2;
+	    			}
+	    		};
+	    		
+	    		for( CtClass clazz2 : toRewire ) {			
 	    			try {
 	    				clazz2.writeFile();
 	    				clazz2.defrost();
@@ -123,19 +142,6 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 						// TODO Auto-generated catch block
 						e2.printStackTrace();
 					}
-	    		};
-	    		
-	    		for( CtClass clazz2 : toRewire ) {
-	    			 try {
-	    				 CodeConverter conv = new CodeConverter();
-	    				 CtClass indirectionClass = ClassPool.getDefault().get(ArrayInterceptor.class.getName());
-	    				 conv.replaceArrayAccess( indirectionClass, new CodeConverter.DefaultArrayAccessReplacementMethodNames());
-	    				 clazz2.instrument(conv);
-	    			} catch (NotFoundException e2) {
-	    				throw new CannotCompileException(e2);
-	    			} catch (CannotCompileException e2) {
-	    				throw e2;
-	    			}
 	    		};
 	    		
 	    		toRewire.clear();

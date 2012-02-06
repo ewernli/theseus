@@ -156,13 +156,14 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 		}
 		
 		int index = Arrays.asList(orderedFields).indexOf(ctField);
-		String getterCode = "public " + ctField.getType().getName() + " "
+		String getterCode = "public final " + ctField.getType().getName() + " "
 				+ getter
 				+ "() { " 
 				+ " ((ch.unibe.iam.scg.ContextClassLoader) this.getClass().getClassLoader()).synchronizeRead( this, "+ index +" ); "
 				+ " return this." + ctField.getName() + ";" 
 				+ " }";
 		CtMethod getMethod = CtMethod.make(getterCode, ctClass);
+		getMethod.setModifiers( getMethod.getModifiers() | AccessFlag.FINAL ) ;
 		ctClass.addMethod(getMethod);
 
 		try {
@@ -172,7 +173,7 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 			// Fine, it should not exist
 		}
 					
-		String setterCode = "public void " 
+		String setterCode = "public final void " 
 				+ setter
 				+ "(" + ctField.getType().getName() + " value) "
 				+ "{ " 
@@ -180,6 +181,7 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 				+ " ((ch.unibe.iam.scg.ContextClassLoader) this.getClass().getClassLoader()).synchronizeWrite( this, "+ index +" ); "
 				+ " }";
 		CtMethod setMethod = CtMethod.make( setterCode, ctClass );
+		setMethod.setModifiers( setMethod.getModifiers() | AccessFlag.FINAL ) ;
 		ctClass.addMethod(setMethod);
 //		
 //		//Make field public

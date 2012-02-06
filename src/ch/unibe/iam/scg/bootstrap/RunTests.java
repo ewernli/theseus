@@ -7,12 +7,15 @@ import java.rmi.UnexpectedException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import ch.unibe.iam.scg.ContextAware;
 import ch.unibe.iam.scg.ContextClassLoader;
+import ch.unibe.iam.scg.ContextInfo;
 import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.MapDependenciesRewriter;
+import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 import ch.unibe.iam.scg.test.DynamicScope;
 
 import javassist.CannotCompileException;
@@ -225,6 +228,8 @@ public class RunTests extends TestCase {
 			}
 			t2 = System.currentTimeMillis() - t2;
 
+			ConcurrentHashMap<Object, ContextInfo> a= ArrayInterceptor.arrayContextInfo;
+			int s = a.size();
 			System.out.println( "Instrumented: "+t1+", normal: "+t2);
 		}
 	}
