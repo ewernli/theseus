@@ -71,7 +71,8 @@ public class Mapper {
 	
 	public static String rewriteName( String oldName, String versionSuffix ){ 
 		if ( oldName.startsWith("ch.unibe.iam.scg.test") || 
-			 oldName.startsWith("org.mortbay"))
+			 oldName.startsWith("org.mortbay") || 
+			 oldName.startsWith("com.hazelcast") )
 		{
 			return oldName + versionSuffix; 
 		}
@@ -139,6 +140,7 @@ public class Mapper {
 				className.startsWith("java.util.GregorianCalendar" ) ||
 				className.startsWith("sun.util.BuddhistCalendar") ||
 				className.startsWith("java.util.Currency") ||
+				className.equals("java.util.Properties") ||
 				//className.startsWith("com.sun.org.apache.xerces.internal") ||
 				//className.startsWith("javax.xml.parsers") ||
 				className.equals("java.security.AccessController") ||
