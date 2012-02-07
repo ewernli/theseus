@@ -28,5 +28,21 @@ public class DynamicScope {
 		final ContextClassLoader loader = (ContextClassLoader) this.getClass().getClassLoader();
 		dyn.run();		
 		new Dynamic2(0,0,0,TimeUnit.MICROSECONDS,new ArrayBlockingQueue<Runnable>(10));
+		new Runnable() {
+			
+			public void run() {
+				// TODO Auto-generated method stub
+				
+			}
+		}.run();
+		new Runnable() {
+			
+			public void run() {
+				
+				new Runnable() {
+					public void run() {}					
+				}.run();			
+			}
+		}.run();
 	}
 }

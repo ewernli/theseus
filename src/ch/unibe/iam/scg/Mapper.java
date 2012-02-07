@@ -147,6 +147,7 @@ public class Mapper {
 				className.equals("java.security.PrivilegedExceptionAction") ||
 				className.startsWith("sun.misc") ||
 				className.startsWith("java.util.concurrent.locks") ||
+				className.startsWith("java.util.concurrent.TimeUnit") ||
 				//className.startsWith("java.util.concurrent") || // should remove
 				className.equals("java.util.TimeZone") ||
 				className.equals("java.util.Date")||

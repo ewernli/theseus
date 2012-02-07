@@ -123,7 +123,7 @@ class InterceptAccessorsEditor extends ExprEditor {
                 }
 
 
-                if( fieldName.equals("this$0") || fieldName.startsWith("val$")) {
+                if( fieldName.startsWith("this$") || fieldName.startsWith("val$")) {
                 	if( fieldAccess.isWriter() ) {
                 		return; // these values are set in the synthetic constructor, and we can not easily override these writes, for some unkown reasons
                 	}
