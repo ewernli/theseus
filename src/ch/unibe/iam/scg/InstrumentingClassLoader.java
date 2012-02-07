@@ -1,7 +1,16 @@
 package ch.unibe.iam.scg;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.AllPermission;
+import java.security.CodeSource;
+import java.security.PermissionCollection;
+import java.security.Permissions;
+import java.security.ProtectionDomain;
+import java.security.cert.Certificate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import javassist.CannotCompileException;
@@ -20,6 +29,7 @@ import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 public class InstrumentingClassLoader  extends javassist.Loader {
 	private final String versionSuffix;
 	private List<CtClass> toRewire = new ArrayList<CtClass>();
+	private ProtectionDomain domain;
 	
 	//private ClassPool cp = new ClassPool( ClassPool.getDefault() ); 
 	
@@ -159,10 +169,36 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	protected synchronized Class<?> loadClass(String name, boolean resolve)
 	throws ClassNotFoundException
      {
+		if( name.equals("com.sun.org.apache.xerces.internal.parsers.XIncludeAwareParserConfiguration"))
+		{
+			int k = 0;
+			k++;
+			System.out.println("Find "+name);
+		}
+		
 	//	System.out.println("Load "+name );
-		return super.loadClass(name, resolve);
+		
+		if( needsRewrite(name)) { //@TODO check if already loaded
+			return findClass(name);
+		}
+		else
+		{
+			return super.loadClass(name, resolve);
+		}
 	}
 
+	private ProtectionDomain getDomain() throws MalformedURLException
+	{
+		if( domain == null ) {
+			PermissionCollection perms = new Permissions();
+			perms.add(new AllPermission() );
+			CodeSource cs = new CodeSource( new URL("file://Theseus") , new Certificate[0] );
+			domain = new ProtectionDomain(cs,perms );
+		}
+		return domain;
+	}
+	private static HashMap loadedClasses = new HashMap();
+	
 	@Override
 	protected Class<?> findClass(String className) throws ClassNotFoundException {
 		
@@ -175,21 +211,30 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			// Delegation implies it is bound by the parent.
 			// We can have several sibling contextual loader, that can shared base types, e.g. ContextInfo, or 
 			// the type ContextualClassLoader itself. 
-			return this.getParent().loadClass(className);
+			return this.getParent().loadClass( className );
 		}
 		
 		try {
 			
 			// The class we define must match the name that was provided,
 			// any renaming must happen before!
+			String newName = Mapper.normalize(className, versionSuffix);
 			
-			CtClass clazz = findCtClass(className);
-			if( clazz == null ) return null;
+			if( loadedClasses.containsKey(newName))
+			{
+				return (Class) loadedClasses.get(newName);
+			}
+			else
+			{
+				CtClass clazz = findCtClass( newName );
+				if( clazz == null ) return null;
 			
-			byte[] b = clazz.toBytecode();
-			clazz.defrost();
-			return defineClass(className, b, 0, b.length);
-			
+				byte[] b = clazz.toBytecode();
+				clazz.defrost(); 
+				Class c = defineClass(newName, b, 0, b.length, getDomain() );
+				loadedClasses.put(newName, c);
+				return c;
+			}
 		} catch (Throwable e) {
 			e.printStackTrace();
 			throw new ClassNotFoundException("Could not define" + className, e);
@@ -212,7 +257,8 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	public Class resolve(String oldInstrumentedName)
 	{
 		try {
-			if( oldInstrumentedName.contains("$$")) {
+			//@TODO fix hardcoded suffix 
+			if( oldInstrumentedName.contains("$$") || oldInstrumentedName.contains("XX")) {
 				String originalName = unrewriteName( oldInstrumentedName );
 				return this.loadClass(rewriteName(originalName));
 			}

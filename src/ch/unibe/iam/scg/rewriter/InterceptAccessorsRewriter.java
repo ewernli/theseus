@@ -98,7 +98,13 @@ class InterceptAccessorsEditor extends ExprEditor {
         	String fieldClassName = fieldAccess.getField().getDeclaringClass().getName();
         	CtClass fieldClass = fieldAccess.getField().getDeclaringClass();
         	
+        	//@TODO Should exclude static final from interface
         	if( ( fieldAccess.getField().getModifiers() & AccessFlag.FINAL ) > 0 )
+        	{
+        		return;
+        	}
+        	//@TODO Skip static HACK!
+        	if( ( fieldAccess.getField().getModifiers() & AccessFlag.STATIC ) > 0 )
         	{
         		return;
         	}
@@ -129,12 +135,23 @@ class InterceptAccessorsEditor extends ExprEditor {
 				String getter = ClassRewriter.GETTER_PREFIX + propertyName;
 				String setter = ClassRewriter.SETTER_PREFIX + propertyName;
 				
-				
-               if (fieldAccess.isReader()) {
-            	   	fieldAccess.replace("$_ = $0." + getter + "();");
-               } else if (fieldAccess.isWriter()) {
-            	   	fieldAccess.replace( "$0." + setter+"($1);");
-               }
+				if( ! fieldAccess.isStatic() )
+				{
+	               if (fieldAccess.isReader()) {
+	            	   	fieldAccess.replace("$_ = $0." + getter + "();");
+	               } else if (fieldAccess.isWriter()) {
+	            	   	fieldAccess.replace( "$0." + setter+"($1);");
+	               }
+	               
+				}
+				else
+				{
+	               if (fieldAccess.isReader()) {
+	            	   	fieldAccess.replace("$_ = "+fieldClassName + "." + getter + "();");
+	               } else if (fieldAccess.isWriter()) {
+	            	   	fieldAccess.replace( fieldClassName + "." + setter+"($1);");
+	               }
+				}
             }
 
         } catch (Exception e) {

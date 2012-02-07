@@ -244,10 +244,10 @@ public class RunTests extends TestCase {
 	
 	public void testDynamicScope() throws Exception
 	{
-		ContextClassLoader loader = new ContextClassLoader("$$1");
-		ContextClassLoader loaderNext = new ContextClassLoader("$$2");
+		ContextClassLoader loader = new ContextClassLoader("XX1");
+		ContextClassLoader loaderNext = new ContextClassLoader("XX2");
 		
-		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.DynamicScope$$1");
+		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.DynamicScopeXX1");
 		ContextAware closure = (ContextAware) clazz.newInstance();
 		invoke( closure, "test" );
 		ContextAware nodeNext = closure.migrateToNext( loaderNext );

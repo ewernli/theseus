@@ -92,6 +92,22 @@ public class Mapper {
 		
 	};
 	
+	public static String normalize( String className, String versionSuffix )
+	{
+		// java.util.X --> unibe.test.core.java.util.X$$1
+		// unibe.test.core.java.util.X$$1 --> unibe.test.core.java.util.X$$1
+		// java.util.X$$1 --> java.util.X$$1
+		
+		if( needsRewrite(className) && ! className.endsWith(versionSuffix) )
+		{
+			return rewriteName(className, versionSuffix);
+		}
+		else
+		{
+			return className;
+		}
+	}
+	
 	public static boolean needsRewrite(String className) {
 		/*return  (className.startsWith("ch.unibe.iam.scg.test") ||
 				className.startsWith("java.util") || 
@@ -123,11 +139,14 @@ public class Mapper {
 				className.startsWith("java.util.GregorianCalendar" ) ||
 				className.startsWith("sun.util.BuddhistCalendar") ||
 				className.startsWith("java.util.Currency") ||
+				//className.startsWith("com.sun.org.apache.xerces.internal") ||
+				//className.startsWith("javax.xml.parsers") ||
 				className.equals("java.security.AccessController") ||
 				className.equals("java.security.PrivilegedAction") ||
 				className.equals("java.security.PrivilegedExceptionAction") ||
 				className.startsWith("sun.misc") ||
 				className.startsWith("java.util.concurrent.locks") ||
+				//className.startsWith("java.util.concurrent") || // should remove
 				className.equals("java.util.TimeZone") ||
 				className.equals("java.util.Date")||
 				className.startsWith("java.util.concurrent.atomic")  ||

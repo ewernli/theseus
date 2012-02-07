@@ -30,6 +30,16 @@ public class ArrayInterceptor {
 		return ((Object[])array)[ pos ];
 	}
 	
+	public static void arrayWriteLong( Object array, int pos, long value ) {
+		ContextClassLoader.synchronizeArrayWrite(array, pos);
+		((long[])array)[ pos ] = value;
+	}
+	
+	public static long arrayReadLong( Object array, int pos ) {
+		ContextClassLoader.synchronizeArrayRead(array, pos);
+		return ((long[])array)[ pos ];
+	}
+	
 	public static void arrayWriteByteOrBoolean( Object array, int pos, byte value ) {
 		ContextClassLoader.synchronizeArrayWrite(array, pos);
 		if( array instanceof byte[] )
