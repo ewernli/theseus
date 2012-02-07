@@ -390,7 +390,7 @@ public class Dynamic2 extends AbstractExecutorService
         // security policy is implemented.
 	SecurityManager security = System.getSecurityManager();
 	if (security != null) 
-            java.security.AccessController.checkPermission(null);
+            java.security.AccessController.checkPermission(Dynamic2.shutdownPerm);
 
         boolean fullyTerminated = false;
         final ReentrantLock mainLock = this.mainLock;

@@ -142,6 +142,7 @@ public class Mapper {
 				//className.startsWith("com.sun.org.apache.xerces.internal") ||
 				//className.startsWith("javax.xml.parsers") ||
 				className.equals("java.security.AccessController") ||
+				className.equals("java.security.Permission") ||
 				className.equals("java.security.PrivilegedAction") ||
 				className.equals("java.security.PrivilegedExceptionAction") ||
 				className.startsWith("sun.misc") ||
