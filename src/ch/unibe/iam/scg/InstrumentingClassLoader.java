@@ -71,7 +71,7 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 		}
 		catch( NotFoundException e )
 		{
-			System.out.println("Did not CtFind "+className);	
+			//System.out.println("Did not CtFind "+className);	
 			String unversionedName = unrewriteName( className );
 			try {
 				clazz = cp.get(unversionedName);
@@ -220,9 +220,10 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			// any renaming must happen before!
 			String newName = Mapper.normalize(className, versionSuffix);
 			
-			if( (loadedClasses.size() % 1) == 0 ) {
-				System.out.println("Loading... ("+newName+")");
-			}
+//			if( (loadedClasses.size() % 100) == 0 ) {
+//				System.out.println("Loading... ("+newName+")");
+//			}
+			
 			if( loadedClasses.containsKey(newName))
 			{
 				return (Class) loadedClasses.get(newName);
@@ -235,6 +236,7 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 				byte[] b = clazz.toBytecode();
 				clazz.defrost(); 
 				Class c = defineClass(newName, b, 0, b.length, getDomain() );
+				clazz.prune();
 				loadedClasses.put(newName, c);
 				return c;
 			}

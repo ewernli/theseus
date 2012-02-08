@@ -1,5 +1,6 @@
 package ch.unibe.iam.scg.rewriter.helper;
 
+import java.lang.reflect.Array;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -77,5 +78,12 @@ public class ArrayInterceptor {
 	public static Object registerArray( Object array ) {
 		arrayContextInfo.put(array, new ContextInfo() );
 		return array;
+	}
+	
+	public static Object newInstance( Class type, int size )
+	{
+		Object a = Array.newInstance(type,size);
+		registerArray(a);
+		return a;
 	}
 }
