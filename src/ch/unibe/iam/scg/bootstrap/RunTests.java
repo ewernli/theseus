@@ -180,8 +180,8 @@ public class RunTests extends TestCase {
 	
 	public void testClassLiteral() throws Exception
 	{
-		ContextClassLoader loaderPrev = new ContextClassLoader("XX1");
-		Class clazz = loaderPrev.loadClass("ch.unibe.iam.scg.test.ClassLiteralXX1");
+		ContextClassLoader loaderPrev = new ContextClassLoader("$$1");
+		Class clazz = loaderPrev.loadClass("ch.unibe.iam.scg.test.ClassLiteral$$1");
 		Object obj = clazz.newInstance();
 		Object selfType = invoke( obj, "newSelfType");
 		System.out.println( selfType.getClass().toString() );
