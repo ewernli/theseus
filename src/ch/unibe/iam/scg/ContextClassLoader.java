@@ -28,11 +28,15 @@ import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 
 public class ContextClassLoader extends InstrumentingClassLoader {
 	
-	private ContextClassLoader next;
+	private ContextClassLoader next, prev;
 	
+	//@TODO it's not a true prev-next relationship
 	public void setNext( ContextClassLoader n )
 	{
 		next = n;
+		prev = this;
+		next.prev = this;
+		next.next = next;
 	}
 	
 	public ContextClassLoader newNext() {
@@ -179,7 +183,8 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				// this is an old migrated instance, it should be not global and prev=null, next=null
 				// but this is not the case because we don't have forced garbage collection
 			{
-				throw new RuntimeException("Not implemented yet");
+				ContextAware prevAware = (ContextAware) migrateToPrevIfNecessary(nextAware, this);
+				prevField.set(obj, prevAware);
 			}
 			else {
 				prevField.set(obj, nextAware.getContextInfo().prev );
@@ -326,8 +331,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				{
 					int[] a = (int[]) obj;
 					//@TODO will not work for Object[]	-- need to migrate if necessary
-					System.arraycopy( info.prev, 0, a, 0, a.length);
-					info.dirty = 0x0;
+					System.arraycopy( info.prev, 0, a, 0, a.length);	
 				}
 				//@TODO thread aren't nice for us, should be handled one way of the other
 				else if( obj instanceof  Object[] )
@@ -349,10 +353,37 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				{
 					throw new RuntimeException("Not implemented yet");
 				}
+				info.dirty = 0x0;
 			}
 			else if ( info.prev == null && info.next != null)
 			{
-				throw new RuntimeException( "Not implemented yet" );
+				if( obj instanceof int[] )
+				{
+					int[] a = (int[]) obj;
+					//@TODO will not work for Object[]	-- need to migrate if necessary
+					System.arraycopy( info.next, 0, a, 0, a.length);			
+				}
+				//@TODO thread aren't nice for us, should be handled one way of the other
+				else if( obj instanceof  Object[] )
+				{
+					Object[] newObjs = (Object[]) info.next;
+					Object[] objs = (Object[]) obj;	
+					for( int i=0; i<newObjs.length; i++ )
+					{
+						// hack we need to take the most specific loaded,
+						// otherwise we might get null if the type of the array was loaded by 
+						// java.lang classloader
+						if( newObjs[i] != null ) {
+							ContextClassLoader loader = (ContextClassLoader) newObjs[i].getClass().getClassLoader();
+							objs[i] = migrateToPrevIfNecessary( newObjs[i] , loader );
+						}
+					}
+				}
+				else 
+				{
+					throw new RuntimeException("Not implemented yet");
+				}
+				info.dirty = 0x0;
 			}
 			else
 			{
@@ -399,8 +430,15 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				// this is an old migrated instance, it should be not global and prev=null, next=null
 				// but this is not the case because we don't have forced garbage collection
 			{
-				throw new RuntimeException("Not implemented yet");
-				//return nextAware.migrateToPrev(nextLoader);
+				//@TODO ugly, the should be a method migrateToPrev()
+				ContextAware prevAware = nextAware.migrateToNext(nextLoader.prev);
+				ContextInfo prevInfo = prevAware.getContextInfo();
+				ContextInfo nextInfo = nextAware.getContextInfo();
+				prevInfo.next = next;
+				prevInfo.prev = null;
+				nextInfo.prev = prevAware;
+				nextInfo.next = null;
+				return prevAware;
 			}
 			else {
 				return nextAware.getContextInfo().prev;
@@ -413,6 +451,10 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	}
 	
 	public static void synchronizeArrayWrite(Object obj, int pos ) {
+		
+		// make sure the whole array is up-to-date
+		synchronizeArrayRead(obj, pos);
+		
 		ContextInfo info = ArrayInterceptor.contextInfoOfArray(obj);
 		
 		//@TODO array might be returned by core, uninstrumented framework class, which
@@ -420,71 +462,16 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		if( info == null || ! info.global )
 			return;
 		
+		// Now invalidate the other flag
 		if( info.next == null && info.prev != null )
 		{
-			ContextInfo prevInfo = ArrayInterceptor.contextInfoOfArray(info.prev);
-			
-			if( obj instanceof int[] )
-			{
-				int[] a = (int[]) obj;
-				System.arraycopy( info.prev, 0, a, 0, a.length);  // make sure the whole array is up-to-date
-			}
-			//@TODO thread aren't nice for us, should be handled one way of the other
-			else if( obj instanceof  Object[] )
-			{
-				Object[] oldObjs = (Object[]) info.prev;
-				Object[] objs = (Object[]) obj;	
-				for( int i=0; i<oldObjs.length; i++ )
-				{
-					// hack we need to take the most specific loaded,
-					// otherwise we might get null if the type of the array was loaded by 
-					// java.lang classloader
-					if( oldObjs[i] != null ) {
-						ContextClassLoader loader = (ContextClassLoader) oldObjs[i].getClass().getClassLoader();
-						objs[i] = migrateToNextIfNecessary( oldObjs[i] , loader.next );
-					}
-				}
-			}
-			else
-			{
-				//@TODO will not work for Object[]					
-				throw new RuntimeException("Not implemented yet");
-			}
-			
+			ContextInfo prevInfo = ArrayInterceptor.contextInfoOfArray(info.prev);			
 			info.dirty = 0x0; // clear current flag 
 			prevInfo.dirty = 0x1; // set the flag for the other
 		}
 		else if ( info.prev == null && info.next != null)
 		{
-			ContextInfo nextInfo = ArrayInterceptor.contextInfoOfArray(info.next);
-			
-			if( obj instanceof int[] )
-			{
-				int[] a = (int[]) obj;
-				System.arraycopy( info.next, 0, a, 0, a.length);  // make sure the whole array is up-to-date
-			}
-			//@TODO thread aren't nice for us, should be handled one way of the other
-			else if( obj instanceof  Object[] )
-			{
-				Object[] newObjs = (Object[]) info.next;
-				Object[] objs = (Object[]) obj;
-				for( int i=0; i<newObjs.length; i++ )
-				{
-					// hack we need to take the most specific loaded,
-					// otherwise we might get null if the type of the array was loaded by 
-					// java.lang classloader
-					if( newObjs[i] != null ) {
-						ContextClassLoader loader = (ContextClassLoader) newObjs[i].getClass().getClassLoader();
-						objs[i] = migrateToPrevIfNecessary( newObjs[i] , loader );
-					}
-				}
-			}
-			else
-			{
-				//@TODO will not work for Object[]					
-				throw new RuntimeException("Not implemented yet");
-			}
-			
+			ContextInfo nextInfo = ArrayInterceptor.contextInfoOfArray(info.next);		
 			info.dirty = 0x0; // clear current flag 
 			nextInfo.dirty = 0x1; // set the flag for the other
 		}
@@ -542,20 +529,19 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	}
 	
 	public Object[] migrateObjArrayToPrev( Object[] array ) {
-		throw new RuntimeException("Not implemented yet");
-//		String newTypeName = array.getClass().getComponentType().getName();
-//		Class oldTypeClass = this.resolve(newTypeName);
-//		Object array2 = Array.newInstance(newTypeClass, array.length);
-//		ArrayInterceptor.registerArray(array2);
-//		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
-//		ContextInfo info2 = ArrayInterceptor.contextInfoOfArray(array2);
-//		info1.global = true;
-//		info0.global = true;
-//		info0.next = array;
-//		info1.prev = array0;
-//		info0.dirty = 0xFFFFFFFF;
-//		info1.dirty = 0x0000;
-//		return (Object[]) array0;
+		String newTypeName = array.getClass().getComponentType().getName();
+		Class oldTypeClass = this.prev.resolve(newTypeName);
+		Object array0 = Array.newInstance(oldTypeClass, array.length);
+		ArrayInterceptor.registerArray(array0);
+		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
+		ContextInfo info0 = ArrayInterceptor.contextInfoOfArray(array0);
+		info1.global = true;
+		info0.global = true;
+		info0.next = array;
+		info1.prev = array0;
+		info0.dirty = 0xFFFFFFFF;
+		info1.dirty = 0x0000;
+		return (Object[]) array0;
 	}
 	
 	@Override
