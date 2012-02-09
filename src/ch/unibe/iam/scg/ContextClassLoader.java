@@ -270,7 +270,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		else if( prevValue instanceof ContextAware ) {
 			ContextAware prevAware = (ContextAware) prevValue;
 			
-			ContextAware nextAware = (ContextAware) migrateToNextIfNecessary(prevAware, this);
+			ContextAware nextAware = (ContextAware) migrateToNextIfNecessary(prevAware, this.prev );
 			nextField.set(obj, nextAware);
 			
 			// @TODO children can be array -- test for all types
@@ -358,8 +358,8 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 						// otherwise we might get null if the type of the array was loaded by 
 						// java.lang classloader
 						if( oldObjs[i] != null ) {
-							ContextClassLoader loader = (ContextClassLoader) oldObjs[i].getClass().getClassLoader();
-							objs[i] = migrateToNextIfNecessary( oldObjs[i] , loader.next );
+							ContextClassLoader loader = (ContextClassLoader) oldObjs[i].getClass().getClassLoader();							
+							objs[i] = migrateToNextIfNecessary( oldObjs[i] , loader );
 						}
 					}
 				}
@@ -388,7 +388,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 						// otherwise we might get null if the type of the array was loaded by 
 						// java.lang classloader
 						if( newObjs[i] != null ) {
-							ContextClassLoader loader = (ContextClassLoader) newObjs[i].getClass().getClassLoader();
+							ContextClassLoader loader = (ContextClassLoader) newObjs[i].getClass().getClassLoader();							
 							objs[i] = migrateToPrevIfNecessary( newObjs[i] , loader );
 						}
 					}
@@ -407,7 +407,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		}
 	}
 	
-	public static  Object migrateToNextIfNecessary( Object prev, ContextClassLoader nextLoader )
+	public static  Object migrateToNextIfNecessary( Object prev, ContextClassLoader prevLoader )
 	{
 		if( prev.getClass().getName().contains("org.mortbay.thread.BoundedThreadPool$PoolThread"))
 		{
@@ -423,7 +423,10 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				// this is an old migrated instance, it should be not global and prev=null, next=null
 				// but this is not the case because we don't have forced garbage collection
 			{
-				return prevAware.migrateToNext(nextLoader);
+				if( prevLoader == null ) {
+					throw new NullPointerException("System class loader encounter for context aware object");
+				}
+				return prevAware.migrateToNext(prevLoader.next);
 			}
 			else {
 				return prevAware.getContextInfo().next;

@@ -176,9 +176,9 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			System.out.println("Find "+name);
 		}
 		
-	//	System.out.println("Load "+name );
+		System.out.println("Load "+name );
 		
-		if( needsRewrite(name)) { //@TODO check if already loaded
+		if( needsRewrite(name) ) { //@TODO check if already loaded
 			return findClass(name);
 		}
 		else
