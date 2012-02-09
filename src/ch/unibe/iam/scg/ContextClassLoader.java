@@ -203,6 +203,18 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				prevField.set(obj, ArrayInterceptor.contextInfoOfArray(nextValue).prev );
 			}	
 			
+		} else if ( nextValue instanceof byte[] ) {
+			byte[] nextArray = (byte[]) nextValue;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(nextValue).global )
+			{
+				prevField.set(obj, migrateByteArrayToPrev(nextArray));
+				assert( ArrayInterceptor.contextInfoOfArray(nextValue).global == true);
+			}
+			else {
+				prevField.set(obj, ArrayInterceptor.contextInfoOfArray(nextValue).prev );
+			}	
+			
 			
 		} else if ( nextValue instanceof Object[] ) {
 			Object[] nextArray = (Object[]) nextValue;
@@ -261,18 +273,6 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			ContextAware nextAware = (ContextAware) migrateToNextIfNecessary(prevAware, this);
 			nextField.set(obj, nextAware);
 			
-//			if( ! prevAware.getContextInfo().global ||
-//					( prevAware.getContextInfo().global && prevAware.getContextInfo().next == null)) 
-//				// this is an old migrated instance, it should be not global and prev=null, next=null
-//				// but this is not the case because we don't have forced garbage collection
-//			{
-//				nextField.set(obj, prevAware.migrateToNext(this));
-//				assert( prevAware.getContextInfo().global == true);
-//			}
-//			else {
-//				nextField.set(obj, prevAware.getContextInfo().next );
-//			}			
-//			
 			// @TODO children can be array -- test for all types
 		} else if ( prevValue instanceof int[] ) {
 			int[] prevArray = (int[]) prevValue;
@@ -280,6 +280,18 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			if( ! ArrayInterceptor.contextInfoOfArray(prevValue).global )
 			{
 				nextField.set(obj, migrateIntArrayToNext(prevArray));
+				assert( ArrayInterceptor.contextInfoOfArray(prevValue).global == true);
+			}
+			else {
+				nextField.set(obj, ArrayInterceptor.contextInfoOfArray(prevValue).next );
+			}	
+			
+		} else if ( prevValue instanceof byte[] ) {
+			byte[] prevArray = (byte[]) prevValue;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(prevValue).global )
+			{
+				nextField.set(obj, migrateByteArrayToNext(prevArray));
 				assert( ArrayInterceptor.contextInfoOfArray(prevValue).global == true);
 			}
 			else {
@@ -298,8 +310,6 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			else {
 				nextField.set(obj, ArrayInterceptor.contextInfoOfArray(prevValue).next );
 			}	
-			
-			// @TODO this include null -- is that correct?
 		} else if( prevValue.getClass().isArray() ){
 			throw new RuntimeException("Unsupported type:" + prevValue.getClass().toString() );
 		} else if( prevValue.getClass() == Class.class ){
@@ -330,7 +340,11 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				if( obj instanceof int[] )
 				{
 					int[] a = (int[]) obj;
-					//@TODO will not work for Object[]	-- need to migrate if necessary
+					System.arraycopy( info.prev, 0, a, 0, a.length);	
+				}
+				else if( obj instanceof byte[] )
+				{
+					byte[] a = (byte[]) obj;
 					System.arraycopy( info.prev, 0, a, 0, a.length);	
 				}
 				//@TODO thread aren't nice for us, should be handled one way of the other
@@ -482,6 +496,21 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			
 	}
 	
+	public byte[] migrateByteArrayToNext( byte[] array ) {
+		//@TODO should be new int[ array.length ]
+		byte[] array2 = array.clone();  
+		ArrayInterceptor.registerArray(array2);
+		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
+		ContextInfo info2 = ArrayInterceptor.contextInfoOfArray(array2);
+		info1.global = true;
+		info2.global = true;
+		info1.next = array2;
+		info2.prev = array;
+		info2.dirty = 0xFFFFFFFF;
+		info1.dirty = 0x0000;
+		return array2;
+	}
+	
 	public int[] migrateIntArrayToNext( int[] array ) {
 		//@TODO should be new int[ array.length ]
 		int[] array2 = array.clone();  
@@ -511,6 +540,21 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info2.dirty = 0xFFFFFFFF;
 		info1.dirty = 0x0000;
 		return (Object[]) array2;
+	}
+
+	public byte[] migrateByteArrayToPrev( byte[] array ) {
+		//@TODO should be new int[ array.length ]
+		byte[] array0 = array.clone();  
+		ArrayInterceptor.registerArray(array0);
+		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
+		ContextInfo info0 = ArrayInterceptor.contextInfoOfArray(array0);
+		info1.global = true;
+		info0.global = true;
+		info0.next = array;
+		info1.prev = array0;
+		info0.dirty = 0xFFFFFFFF;
+		info1.dirty = 0x0000;
+		return array0;
 	}
 	
 	public int[] migrateIntArrayToPrev( int[] array ) {
