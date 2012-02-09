@@ -1,6 +1,7 @@
 package ch.unibe.iam.scg;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -28,15 +29,27 @@ import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 
 public class ContextClassLoader extends InstrumentingClassLoader {
 	
-	private ContextClassLoader next, prev;
+	private ContextClassLoader next;
+	private WeakReference<ContextClassLoader> prev;
 	
 	//@TODO it's not a true prev-next relationship
 	public void setNext( ContextClassLoader n )
 	{
 		next = n;
-		prev = this;
-		next.prev = this;
+		prev = new WeakReference<ContextClassLoader>(this);
+		next.prev = new WeakReference<ContextClassLoader>(this);
 		next.next = next;
+	}
+
+	private ContextClassLoader getNext()
+	{
+		return next;
+		
+	}
+	
+	private ContextClassLoader getPrev() 
+	{
+		return prev.get();
 	}
 	
 	public ContextClassLoader newNext() {
@@ -270,7 +283,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		else if( prevValue instanceof ContextAware ) {
 			ContextAware prevAware = (ContextAware) prevValue;
 			
-			ContextAware nextAware = (ContextAware) migrateToNextIfNecessary(prevAware, this.prev );
+			ContextAware nextAware = (ContextAware) migrateToNextIfNecessary(prevAware, this.getPrev() );
 			nextField.set(obj, nextAware);
 			
 			// @TODO children can be array -- test for all types
@@ -358,7 +371,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 						// otherwise we might get null if the type of the array was loaded by 
 						// java.lang classloader
 						if( oldObjs[i] != null ) {
-							ContextClassLoader loader = (ContextClassLoader) oldObjs[i].getClass().getClassLoader();							
+							ClassLoader loader =  oldObjs[i].getClass().getClassLoader();							
 							objs[i] = migrateToNextIfNecessary( oldObjs[i] , loader );
 						}
 					}
@@ -388,7 +401,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 						// otherwise we might get null if the type of the array was loaded by 
 						// java.lang classloader
 						if( newObjs[i] != null ) {
-							ContextClassLoader loader = (ContextClassLoader) newObjs[i].getClass().getClassLoader();							
+							ClassLoader loader = newObjs[i].getClass().getClassLoader();							
 							objs[i] = migrateToPrevIfNecessary( newObjs[i] , loader );
 						}
 					}
@@ -407,7 +420,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		}
 	}
 	
-	public static  Object migrateToNextIfNecessary( Object prev, ContextClassLoader prevLoader )
+	public static  Object migrateToNextIfNecessary( Object prev, ClassLoader prevLoader )
 	{
 		if( prev.getClass().getName().contains("org.mortbay.thread.BoundedThreadPool$PoolThread"))
 		{
@@ -426,7 +439,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				if( prevLoader == null ) {
 					throw new NullPointerException("System class loader encounter for context aware object");
 				}
-				return prevAware.migrateToNext(prevLoader.next);
+				return prevAware.migrateToNext( ((ContextClassLoader)prevLoader).next);
 			}
 			else {
 				return prevAware.getContextInfo().next;
@@ -438,7 +451,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		}
 	}
 	
-	public static  Object migrateToPrevIfNecessary( Object next, ContextClassLoader nextLoader )
+	public static  Object migrateToPrevIfNecessary( Object next, ClassLoader nextLoader )
 	{
 		if( next instanceof ContextAware )
 		{
@@ -448,7 +461,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				// but this is not the case because we don't have forced garbage collection
 			{
 				//@TODO ugly, the should be a method migrateToPrev()
-				ContextAware prevAware = nextAware.migrateToNext(nextLoader.prev);
+				ContextAware prevAware = nextAware.migrateToNext(((ContextClassLoader)nextLoader).getPrev());
 				ContextInfo prevInfo = prevAware.getContextInfo();
 				ContextInfo nextInfo = nextAware.getContextInfo();
 				prevInfo.next = next;
@@ -577,7 +590,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	
 	public Object[] migrateObjArrayToPrev( Object[] array ) {
 		String newTypeName = array.getClass().getComponentType().getName();
-		Class oldTypeClass = this.prev.resolve(newTypeName);
+		Class oldTypeClass = this.getPrev().resolve(newTypeName);
 		Object array0 = Array.newInstance(oldTypeClass, array.length);
 		ArrayInterceptor.registerArray(array0);
 		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);

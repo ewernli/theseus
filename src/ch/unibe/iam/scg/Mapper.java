@@ -127,6 +127,11 @@ public class Mapper {
 				; */
 		
 		return ! ( 
+				className.startsWith("org.mortbay.thread.BoundedThreadPool") ||
+				className.startsWith("org.mortbay.thread.ThreadPool") ||
+				className.startsWith("org.mortbay.component.LifeCycle") ||
+				className.startsWith("org.mortbay.thread.BoundedThreadPoolLifeCycle" )||
+				
 				className.equals("java.lang.Object") ||
 				( className.startsWith("ch.unibe.iam.scg.") && 
 						!className.startsWith("ch.unibe.iam.scg.test")) ||
