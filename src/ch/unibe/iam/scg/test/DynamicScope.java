@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit;
 import ch.unibe.iam.scg.ContextAware;
 import ch.unibe.iam.scg.ContextClassLoader;
 import ch.unibe.iam.scg.ContextInfo;
-import ch.unibe.iam.scg.ContextualRunnable;
 
 public class DynamicScope {
 	

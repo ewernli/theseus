@@ -47,7 +47,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		
 	}
 	
-	private ContextClassLoader getPrev() 
+	protected ContextClassLoader getPrev() 
 	{
 		return prev.get();
 	}
@@ -138,7 +138,8 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 					}
 					else if ( info.prev == null && info.next != null)
 					{
-						synchronizeFromSucc(obj,info,selectedFieldPosition);
+						// The next class loader know the mapping, not the old one
+						this.next.synchronizeFromSucc(obj,info,selectedFieldPosition);
 					}
 					else
 					{
@@ -186,73 +187,15 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		
 		//System.out.println("Prev type:"+ ( prevValue==null?"null":prevValue.getClass().toString()));
 		
-		if( nextValue == null ) {
-			prevField.set(obj, null );
-		}
-		else if( nextValue instanceof ContextAware ) {
-			ContextAware nextAware = (ContextAware) nextValue;
-			
-			if( ! nextAware.getContextInfo().global			) 
-				// this is an old migrated instance, it should be not global and prev=null, next=null
-				// but this is not the case because we don't have forced garbage collection
-			{
-				ContextAware prevAware = (ContextAware) migrateToPrevIfNecessary(nextAware, this);
-				prevField.set(obj, prevAware);
-			}
-			else {
-				prevField.set(obj, nextAware.getContextInfo().prev );
-			}			
-			
-			// @TODO children can be array -- test for all types
-		} else if ( nextValue instanceof int[] ) {
-			int[] nextArray = (int[]) nextValue;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(nextValue).global )
-			{
-				prevField.set(obj, migrateIntArrayToPrev(nextArray));
-				assert( ArrayInterceptor.contextInfoOfArray(nextValue).global == true);
-			}
-			else {
-				prevField.set(obj, ArrayInterceptor.contextInfoOfArray(nextValue).prev );
-			}	
-			
-		} else if ( nextValue instanceof byte[] ) {
-			byte[] nextArray = (byte[]) nextValue;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(nextValue).global )
-			{
-				prevField.set(obj, migrateByteArrayToPrev(nextArray));
-				assert( ArrayInterceptor.contextInfoOfArray(nextValue).global == true);
-			}
-			else {
-				prevField.set(obj, ArrayInterceptor.contextInfoOfArray(nextValue).prev );
-			}	
-			
-			
-		} else if ( nextValue instanceof Object[] ) {
-			Object[] nextArray = (Object[]) nextValue;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(nextValue).global )
-			{
-				prevField.set(obj, migrateObjArrayToPrev(nextArray));
-				assert( ArrayInterceptor.contextInfoOfArray(nextValue).global == true);
-			}
-			else {
-				prevField.set(obj, ArrayInterceptor.contextInfoOfArray(nextValue).next );
-			}	
-			
-			// @TODO this include null -- is that correct?
-		} else if( nextValue.getClass().isArray() ){
-			throw new RuntimeException("Unsupported type:" + nextValue.getClass().toString() );
-		} else if( nextValue.getClass() == Class.class ){
-			throw new RuntimeException( "Not implemented yet");
-		}
-		else
+		Object prevValue = this.migrateToPrevIfNecessary(nextValue);
+		try
 		{
-			// primitive
-			prevField.set(obj, nextValue);
+			prevField.set(obj, prevValue);
 		}
-		
+		catch(Exception e)
+		{
+			throw new RuntimeException("Ooops ", e);
+		}
 	}
 	
 	
@@ -277,64 +220,15 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		
 		//System.out.println("Prev type:"+ ( prevValue==null?"null":prevValue.getClass().toString()));
 		
-		if( prevValue == null ) {
-			nextField.set(obj, null );
-		}
-		else if( prevValue instanceof ContextAware ) {
-			ContextAware prevAware = (ContextAware) prevValue;
-			
-			ContextAware nextAware = (ContextAware) migrateToNextIfNecessary(prevAware, this.getPrev() );
-			nextField.set(obj, nextAware);
-			
-			// @TODO children can be array -- test for all types
-		} else if ( prevValue instanceof int[] ) {
-			int[] prevArray = (int[]) prevValue;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(prevValue).global )
-			{
-				nextField.set(obj, migrateIntArrayToNext(prevArray));
-				assert( ArrayInterceptor.contextInfoOfArray(prevValue).global == true);
-			}
-			else {
-				nextField.set(obj, ArrayInterceptor.contextInfoOfArray(prevValue).next );
-			}	
-			
-		} else if ( prevValue instanceof byte[] ) {
-			byte[] prevArray = (byte[]) prevValue;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(prevValue).global )
-			{
-				nextField.set(obj, migrateByteArrayToNext(prevArray));
-				assert( ArrayInterceptor.contextInfoOfArray(prevValue).global == true);
-			}
-			else {
-				nextField.set(obj, ArrayInterceptor.contextInfoOfArray(prevValue).next );
-			}	
-			
-			
-		} else if ( prevValue instanceof Object[] ) {
-			Object[] prevArray = (Object[]) prevValue;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(prevValue).global )
-			{
-				nextField.set(obj, migrateObjArrayToNext(prevArray));
-				assert( ArrayInterceptor.contextInfoOfArray(prevValue).global == true);
-			}
-			else {
-				nextField.set(obj, ArrayInterceptor.contextInfoOfArray(prevValue).next );
-			}	
-		} else if( prevValue.getClass().isArray() ){
-			throw new RuntimeException("Unsupported type:" + prevValue.getClass().toString() );
-		} else if( prevValue.getClass() == Class.class ){
-			Class newClass = this.resolve( ((Class)prevValue).getName());
-			nextField.set(obj, newClass);
-		}
-		else
+		Object nextValue = this.migrateToNextIfNecessary(prevValue);
+		try
 		{
-			// primitive
-			nextField.set(obj, prevValue);
+			nextField.set(obj, nextValue);
 		}
-		
+		catch(Exception e)
+		{
+			throw new RuntimeException("Ooops convertion failed",e);
+		}
 	}
 	
 	// OK to be static, there are built-in
@@ -371,8 +265,12 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 						// otherwise we might get null if the type of the array was loaded by 
 						// java.lang classloader
 						if( oldObjs[i] != null ) {
-							ClassLoader loader =  oldObjs[i].getClass().getClassLoader();							
-							objs[i] = migrateToNextIfNecessary( oldObjs[i] , loader );
+							ClassLoader loader = oldObjs[i].getClass().getClassLoader();							
+							if( loader instanceof ContextClassLoader )
+								objs[i] = ((ContextClassLoader)loader).next.migrateToNextIfNecessary( oldObjs[i] );
+							else // null or system class loader
+								objs[i] = oldObjs[i];
+								
 						}
 					}
 				}
@@ -401,8 +299,12 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 						// otherwise we might get null if the type of the array was loaded by 
 						// java.lang classloader
 						if( newObjs[i] != null ) {
+							
 							ClassLoader loader = newObjs[i].getClass().getClassLoader();							
-							objs[i] = migrateToPrevIfNecessary( newObjs[i] , loader );
+							if( loader instanceof ContextClassLoader )
+								objs[i] = ((ContextClassLoader)loader).migrateToPrevIfNecessary( newObjs[i] );
+							else // null or system class loader
+								objs[i] = newObjs[i];
 						}
 					}
 				}
@@ -420,15 +322,13 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		}
 	}
 	
-	public static  Object migrateToNextIfNecessary( Object prev, ClassLoader prevLoader )
+	public  Object migrateToNextIfNecessary( Object prev )
 	{
-		if( prev.getClass().getName().contains("org.mortbay.thread.BoundedThreadPool$PoolThread"))
-		{
-			int k=0;
-			k++;
+		// this is the NEXT loader
+		if( prev == null ) {
+			return null;
 		}
-		
-		if( prev instanceof ContextAware )
+		else if( prev instanceof ContextAware )
 		{
 			ContextAware prevAware = (ContextAware) prev;
 			if( ! prevAware.getContextInfo().global ||
@@ -436,14 +336,49 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				// this is an old migrated instance, it should be not global and prev=null, next=null
 				// but this is not the case because we don't have forced garbage collection
 			{
-				if( prevLoader == null ) {
-					throw new NullPointerException("System class loader encounter for context aware object");
-				}
-				return prevAware.migrateToNext( ((ContextClassLoader)prevLoader).next);
+				return prevAware.migrateToNext( ((ContextClassLoader)this));
 			}
 			else {
 				return prevAware.getContextInfo().next;
 			}
+		}
+		else if ( prev instanceof int[] ) {
+			int[] prevArray = (int[]) prev;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
+			{
+				return migrateIntArrayToNext(prevArray);
+			}
+			else {
+				return ArrayInterceptor.contextInfoOfArray(prev).next;
+			}	
+			
+		} else if ( prev instanceof byte[] ) {
+			byte[] prevArray = (byte[]) prev;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
+			{
+				return migrateByteArrayToNext(prevArray);
+			}
+			else {
+				return ArrayInterceptor.contextInfoOfArray(prev).next ;
+			}	
+			
+			
+		} else if ( prev instanceof Object[] ) {
+			Object[] prevArray = (Object[]) prev;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
+			{
+				return migrateObjArrayToNext(prevArray);
+			}
+			else {
+				return ArrayInterceptor.contextInfoOfArray(prev).next ;
+			}	
+		} else if( prev.getClass().isArray() ){
+			throw new RuntimeException("Unsupported type:" + prev.getClass().toString() );
+		} else if( prev.getClass() == Class.class ){
+			return this.resolve( ((Class)prev).getName());
 		}
 		else
 		{
@@ -451,9 +386,14 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		}
 	}
 	
-	public static  Object migrateToPrevIfNecessary( Object next, ClassLoader nextLoader )
+	public  Object migrateToPrevIfNecessary( Object next )
 	{
-		if( next instanceof ContextAware )
+		// this reference the NEXT loader
+		
+		if( next == null ) {
+			return null;
+		}
+		else if( next instanceof ContextAware )
 		{
 			ContextAware nextAware = (ContextAware) next;
 			if( ! nextAware.getContextInfo().global ) 
@@ -461,7 +401,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				// but this is not the case because we don't have forced garbage collection
 			{
 				//@TODO ugly, the should be a method migrateToPrev()
-				ContextAware prevAware = nextAware.migrateToNext(((ContextClassLoader)nextLoader).getPrev());
+				ContextAware prevAware = nextAware.migrateToNext(((ContextClassLoader)this).getPrev());
 				ContextInfo prevInfo = prevAware.getContextInfo();
 				ContextInfo nextInfo = nextAware.getContextInfo();
 				prevInfo.next = next;
@@ -473,8 +413,46 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			else {
 				return nextAware.getContextInfo().prev;
 			}
-		}
-		else
+		} 
+		else  if ( next instanceof int[] ) {
+			int[] nextArray = (int[]) next;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(next).global )
+			{
+				return migrateIntArrayToPrev(nextArray);
+			}
+			else {
+				return ArrayInterceptor.contextInfoOfArray(next).prev;
+			}	
+			
+		} else if ( next instanceof byte[] ) {
+			byte[] nextArray = (byte[]) next;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(next).global )
+			{
+				return migrateByteArrayToPrev(nextArray);
+			}
+			else {
+				return ArrayInterceptor.contextInfoOfArray(next).prev;
+			}	
+			
+			
+		} else if ( next instanceof Object[] ) {
+			Object[] nextArray = (Object[]) next;
+			
+			if( ! ArrayInterceptor.contextInfoOfArray(next).global )
+			{
+				return migrateObjArrayToPrev(nextArray);
+			}
+			else {
+				return ArrayInterceptor.contextInfoOfArray(next).next;
+			}	
+			// @TODO this include null -- is that correct?
+		} else if( next.getClass().isArray() ){
+			throw new RuntimeException("Unsupported type:" + next.getClass().toString() );
+		} else if( next.getClass() == Class.class ){
+			throw new RuntimeException( "Not implemented yet");
+		} else
 		{
 			return next;
 		}
@@ -543,6 +521,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	}
 	
 	public Object[] migrateObjArrayToNext( Object[] array ) {
+		// this is the next class loader
 		String oldTypeName = array.getClass().getComponentType().getName();
 		Class newTypeClass = this.resolve(oldTypeName);
 		Object array2 = Array.newInstance(newTypeClass, array.length);
@@ -628,7 +607,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		}
 	}
 	
-	private Field[] orderedFields( Field[] fields )
+	protected Field[] orderedFields( Field[] fields )
 	{
 		Arrays.sort( fields, new Comparator<Field>() {
 	
@@ -647,7 +626,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		return fields;
 	}
 	
-	private Field[] nonFinalfieldsOfClassesOnly( Class c ) 
+	protected Field[] nonFinalfieldsOfClassesOnly( Class c ) 
 	{
 		Class current = c;
 		List<Field> fields = new ArrayList<Field>();
