@@ -591,7 +591,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	}
 	
 
-	private int depthOf( Class c )
+	public static int depthOf( Class c )
 	{
 		
 		if( c.getName().equals( "java.lang.Object") )
@@ -607,7 +607,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		}
 	}
 	
-	protected Field[] orderedFields( Field[] fields )
+	public static Field[] orderedFields( Field[] fields )
 	{
 		Arrays.sort( fields, new Comparator<Field>() {
 	
@@ -626,7 +626,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		return fields;
 	}
 	
-	protected Field[] nonFinalfieldsOfClassesOnly( Class c ) 
+	public static Field[] nonFinalfieldsOfClassesOnly( Class c ) 
 	{
 		Class current = c;
 		List<Field> fields = new ArrayList<Field>();
