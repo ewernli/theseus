@@ -492,6 +492,8 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	
 	public byte[] migrateByteArrayToNext( byte[] array ) {
 		//@TODO should be new int[ array.length ]
+		// But givent that we do not have per cell dirty flag,
+		// we can clone and flag as clean
 		byte[] array2 = array.clone();  
 		ArrayInterceptor.registerArray(array2);
 		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
@@ -500,7 +502,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info2.global = true;
 		info1.next = array2;
 		info2.prev = array;
-		info2.dirty = 0xFFFFFFFF;
+		info2.dirty = 0x0000;
 		info1.dirty = 0x0000;
 		return array2;
 	}
@@ -515,7 +517,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info2.global = true;
 		info1.next = array2;
 		info2.prev = array;
-		info2.dirty = 0xFFFFFFFF;
+		info2.dirty = 0x0000;
 		info1.dirty = 0x0000;
 		return array2;
 	}
@@ -547,7 +549,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info0.global = true;
 		info0.next = array;
 		info1.prev = array0;
-		info0.dirty = 0xFFFFFFFF;
+		info0.dirty = 0x0000;
 		info1.dirty = 0x0000;
 		return array0;
 	}
@@ -562,7 +564,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info0.global = true;
 		info0.next = array;
 		info1.prev = array0;
-		info0.dirty = 0xFFFFFFFF;
+		info0.dirty = 0x0000;
 		info1.dirty = 0x0000;
 		return array0;
 	}
