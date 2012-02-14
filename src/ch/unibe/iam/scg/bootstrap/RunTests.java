@@ -16,6 +16,7 @@ import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.MapDependenciesRewriter;
 import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
+import ch.unibe.iam.scg.test.Data;
 import ch.unibe.iam.scg.test.DynamicScope;
 
 import javassist.CannotCompileException;
@@ -50,6 +51,7 @@ public class RunTests extends TestCase {
 		testFrameworkClasses();
 		testArrayList();
 		testClassLiteral();
+		testUnsafeSync();
 	}
 	
 	public void testSubclass() throws Exception
@@ -187,52 +189,7 @@ public class RunTests extends TestCase {
 		System.out.println( selfType.getClass().toString() );
 	}
 	
-	public void testBenchmark() throws Exception
-	{
-		long t1, t2;
-		Object map;
-		HashMap m;
-		Method put ;
-		Method get ;
-		
-		ContextClassLoader loaderPrev = new ContextClassLoader("XX1");
-		loaderPrev.doDelegation = false;
-		Class clazz = loaderPrev.loadClass("ch.unibe.iam.scg.test.core.java.util.HashMapXX1");
-		
-		System.out.println( "----" );
-		
-		for( int k=0; k<3; k++) {
-			map = clazz.newInstance();
-			put = clazz.getMethod("put", Object.class, Object.class );
-			get = clazz.getMethod("get", Object.class );
-			t1 = System.currentTimeMillis();
-			for( int i=0; i < 100000; i++ ) {
-				put.invoke(map, 1, 42 );
-				Object value = get.invoke(map, 1);
-				//invoke2( map, "put", Object.class, Object.class, 1, 42 );
-				//Object value = invoke1( map, "get" , Object.class,  1 );
-				assert( value == Integer.valueOf(42) );
-			}
-			t1 = System.currentTimeMillis() - t1;
-			
-			map = new HashMap();
-			put = HashMap.class.getMethod("put", Object.class, Object.class );
-			get = HashMap.class.getMethod("get", Object.class );
-			t2 = System.currentTimeMillis();
-			for( int i=0; i < 100000; i++ ) {
-				put.invoke(map, 1, 42 );
-				Object value = get.invoke(map, 1);
-				//invoke2( map, "put", Object.class, Object.class, 1, 42 );
-				//Object value = invoke1( map, "get" , Object.class,  1 );
-				assert( value == Integer.valueOf(42) );
-			}
-			t2 = System.currentTimeMillis() - t2;
-
-			ConcurrentHashMap<Object, ContextInfo> a= ArrayInterceptor.arrayContextInfo;
-			int s = a.size();
-			System.out.println( "Instrumented: "+t1+", normal: "+t2);
-		}
-	}
+	
 	
 	public void testInterface() throws Exception
 	{
@@ -272,5 +229,31 @@ public class RunTests extends TestCase {
 		Class clazz = receiver.getClass();
 		Method meth = clazz.getMethod( method, new Class[ ] { c1, c2 } );
 		return meth.invoke( receiver, new Object[]{ p1, p2 } );
+	}
+	
+	public void testUnsafeSync() throws Exception {
+		
+		ContextClassLoader loader = new ContextClassLoader("$$1");
+		
+		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.Data$$1");
+		ContextAware d = (ContextAware) clazz.newInstance();
+		ContextAware d2 = (ContextAware) clazz.newInstance();
+//		Data d = new Data();
+//		Data d2 = new Data();
+		invoke1( d2, "syncFrom", Object.class, d );
+	}
+	
+	public static void main(String args[]) throws Exception
+	{
+//		ClassPool cp = ClassPool.getDefault();
+//		CtClass unsafe = cp.get("sun.misc.Unsafe");
+//		for( CtMethod m : unsafe.getMethods() )
+//		{
+//			if( m.getName().equals("getUnsafe")) {
+//				m.setBody("{return theUnsafe;}");
+//				unsafe.writeFile();
+//			}
+//		}
+		new RunTests().testUnsafeSync();
 	}
 }

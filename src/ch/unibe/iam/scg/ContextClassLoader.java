@@ -32,6 +32,11 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 	private ContextClassLoader next;
 	private WeakReference<ContextClassLoader> prev;
 	
+	public void invoke( ContextAware receiver, String method )
+	{
+		Object n = receiver.migrateToNext(this);
+		
+	}
 	//@TODO it's not a true prev-next relationship
 	public void setNext( ContextClassLoader n )
 	{
