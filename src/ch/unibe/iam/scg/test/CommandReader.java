@@ -36,13 +36,7 @@ public class CommandReader implements Runnable {
 				if( fileExists( "patch") ) {
 					String contextClass = readAndDeleteFile( "patch" );
 					Context newContext = currentContext().newContext( contextClass );
-					newContext.execute(
-						new Runnable() {
-							public void run() {
-								new Thread(CommandReader.this).start();
-							}
-						}
-					);
+					newContext.invoke( this, "spawn", new Class[0], new Object[0] );
 					return;
 				}
 			}
@@ -51,6 +45,11 @@ public class CommandReader implements Runnable {
 		{
 			throw new RuntimeException("Ooops", e);
 		}
+	}
+	
+	public void spawn()
+	{
+		new Thread(this).start();
 	}
 	
 
