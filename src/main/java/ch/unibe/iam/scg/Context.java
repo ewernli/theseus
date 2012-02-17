@@ -3,9 +3,13 @@ package ch.unibe.iam.scg;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Context extends ContextClassLoader {
 
+	private static List rootSet = new ArrayList();
+	
 	public Context(String suffix) {
 		super(suffix);
 	}
@@ -23,6 +27,7 @@ public class Context extends ContextClassLoader {
 			}
 		}
 		
+		rootSet.add(finalReceiver);
 		Method m = finalReceiver.getClass().getMethod(name, parameterTypes);
 		return m.invoke(finalReceiver, args);
 	}
@@ -40,6 +45,7 @@ public class Context extends ContextClassLoader {
 			}
 		}
 		
+		rootSet.add(finalReceiver);
 		finalReceiver.run();
 	}
 	
@@ -52,5 +58,38 @@ public class Context extends ContextClassLoader {
 		ContextClassLoader context = (ContextClassLoader) cst.newInstance( newSuffix );
 		this.setNext(context);
 		return (Context) context;
+	}
+	
+	@Override
+	protected void finalize() throws Throwable {
+		
+		System.out.println("*****Finalized");
+		super.finalize();
+	}
+	
+	private int handleCount = 0;
+	
+	public ContextHandle getHandle()
+	{
+		handleCount++;
+		return new ContextHandle(this);
+	}
+	
+	public void disposeHandle()
+	{
+		handleCount--;
+		if( handleCount==0)
+		{
+			this.forceRelease();
+		}
+	}
+	
+	private void forceRelease()
+	{
+		System.out.println("Force release");
+		for( Object toRelease : rootSet )
+		{
+			// force release
+		}
 	}
 }

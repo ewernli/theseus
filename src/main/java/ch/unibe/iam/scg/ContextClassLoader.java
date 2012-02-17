@@ -584,14 +584,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info1.dirty = 0x0000;
 		return (Object[]) array0;
 	}
-	
-	@Override
-	protected void finalize() throws Throwable {
 		
-		System.out.println("*****Finalized");
-		super.finalize();
-	}
-	
 
 	public static int depthOf( Class c )
 	{

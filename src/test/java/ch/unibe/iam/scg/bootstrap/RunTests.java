@@ -9,8 +9,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
+import ch.unibe.iam.scg.Context;
 import ch.unibe.iam.scg.ContextAware;
 import ch.unibe.iam.scg.ContextClassLoader;
+import ch.unibe.iam.scg.ContextHandle;
 import ch.unibe.iam.scg.ContextInfo;
 import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
@@ -52,6 +54,8 @@ public class RunTests extends TestCase {
 		testArrayList();
 		testClassLiteral();
 		testUnsafeSync();
+		
+		testHandle();
 	}
 	
 	public void testSubclass() throws Exception
@@ -255,5 +259,19 @@ public class RunTests extends TestCase {
 //			}
 //		}
 		new RunTests().testUnsafeSync();
+	}
+	
+	public void testHandle() throws Exception
+	{
+		Context loader = new Context("$$1");
+		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.SubNode$$1");
+		Object node = clazz.newInstance();
+		invoke( node,  "deepen" );
+		System.out.println( node.toString() );
+		
+		ContextHandle h = loader.getHandle();
+		h = null;
+		System.gc();
+			
 	}
 }

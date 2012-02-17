@@ -5,4 +5,5 @@ public class ContextInfo {
 	public Object next = null;
 	public Object prev = null;
 	public long dirty = 0;
+	public Object id = new Object(); // contextual id for synchronization
 }
