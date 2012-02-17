@@ -13,78 +13,63 @@ import ch.unibe.iam.scg.ContextAware;
 import ch.unibe.iam.scg.ContextClassLoader;
 
 public class CommandReader implements Runnable {
-	
 	String currentPath = ".";
-	
-	public void run() 
-	{
-		try{
-				
-			while( true )
-			{
+	public void run() {
+		try {
+			while (true) {
 				String[] line = readInput();
-				
-				if( line[0].equals("cd")) 
-				{
+				if (line[0].equals("cd")) {
 					currentPath = line[1];
+				} else if (line[0].equals("ls")) {
+					printDirectory(currentPath);
 				}
-				else if ( line[0].equals("ls"))
-				{
-					printDirectory( currentPath );
-				}			
-				
-				if( fileExists( "patch") ) {
-					String contextClass = readAndDeleteFile( "patch" );
-					Context newContext = currentContext().newContext( contextClass );
-					newContext.invoke( this, "spawn", new Class[0], new Object[0] );
-					return;
+
+				if (!fileExists("patch")) {
+					continue;
 				}
+				// Signal file is present, so we update
+				String contextClass = readAndDeleteFile("patch");
+				Context newContext = currentContext()
+						.newSuccessor(contextClass);
+				newContext.invoke(this, "spawn", null, null);
+				return;
 			}
-		}
-		catch( Exception e )
-		{
-			throw new RuntimeException("Ooops", e);
+		} catch (Exception e) {
+				e.printStackTrace();
 		}
 	}
-	
-	public void spawn()
-	{
+
+	public void spawn() {
 		new Thread(this).start();
 	}
-	
 
-	
-	public boolean fileExists( String name )
-	{
-		File f = new File( name );
+	public boolean fileExists(String name) {
+		File f = new File(name);
 		return f.exists();
 	}
-	public String[] readInput() throws IOException
-	{
+
+	public String[] readInput() throws IOException {
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 		return in.readLine().split(" ");
-		
+
 	}
-	public void printDirectory( String path )
-	{
-		
+
+	public void printDirectory(String path) {
+
 	}
-	
-	public Context currentContext()
-	{
+
+	public Context currentContext() {
 		return (Context) this.getClass().getClassLoader();
 	}
-	
-	public String readAndDeleteFile( String name ) throws IOException
-	{
+
+	public String readAndDeleteFile(String name) throws IOException {
 		BufferedReader bufRead = null;
-		try{
-			FileReader fr = new FileReader( new File(name) );
+		try {
+			FileReader fr = new FileReader(new File(name));
 			bufRead = new BufferedReader(fr);
 			String contextClassName = bufRead.readLine();
 			return contextClassName;
-		}
-		finally {
+		} finally {
 			bufRead.close();
 		}
 	}

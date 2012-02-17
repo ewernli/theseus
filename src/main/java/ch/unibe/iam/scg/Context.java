@@ -1,10 +1,14 @@
 package ch.unibe.iam.scg;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+
+import ch.unibe.iam.scg.util.IdentitySet;
 
 public class Context extends ContextClassLoader {
 
@@ -31,8 +35,8 @@ public class Context extends ContextClassLoader {
 		}
 		
 		rootSet.add(finalReceiver);
-		Method m = finalReceiver.getClass().getMethod(name, parameterTypes);
-		return m.invoke(finalReceiver, args);
+		Method m = finalReceiver.getClass().getMethod(name, parameterTypes==null?new Class[0]:parameterTypes);
+		return m.invoke(finalReceiver, args==null?new Object[0]:args);
 	}
 	
 	public void execute( Runnable run ) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException
@@ -52,7 +56,7 @@ public class Context extends ContextClassLoader {
 		finalReceiver.run();
 	}
 	
-	public Context newContext( String className ) throws ClassNotFoundException, SecurityException, NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException
+	public Context newSuccessor( String className ) throws ClassNotFoundException, SecurityException, NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException
 	{
 		Class contextClazz = Class.forName( className );
 		Constructor cst = contextClazz.getConstructor(String.class);
@@ -89,10 +93,59 @@ public class Context extends ContextClassLoader {
 	
 	private void forceRelease()
 	{
-		System.out.println("Force release");
-		for( Object toRelease : rootSet )
+		try {
+			System.out.println("Force release");
+			Set alreadyProcessed = new IdentitySet();
+			
+			for( Object toRelease : rootSet )
+			{
+				if( toRelease instanceof ContextAware ) {
+					
+						forceSync( (ContextAware) toRelease, alreadyProcessed);
+					
+				}
+			}
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void forceSync( ContextAware succ, Set alreadyProcessed ) throws IllegalAccessException
+	{
+		if( alreadyProcessed.contains(succ) )
 		{
-			// force release
+			return;
+		}
+		else
+		{
+			alreadyProcessed.add(succ);
+		}
+		
+		Object prev = succ.getContextInfo().prev;
+		Field[] fields = succ.getClass().getFields();
+		
+		for( Field nextF : fields )
+		{
+			Field prevF = nextF; // wrong
+			Object prevValue = prevF.get(prev);
+			Object nextValue = prevValue;
+			if( prevValue instanceof ContextAware )
+			{
+				nextValue = this.migrateToNextIfNecessary(prevValue);
+			}
+			nextF.set(succ, nextValue);
+		}
+		
+		// forced sync
+		succ.getContextInfo().dirty = 0x000000;
+		
+		// recurse
+		for( Field nextF : fields )
+		{
+			Object nextValue = nextF.get(prev);
+			if( nextValue instanceof ContextAware ) {
+				forceSync( (ContextAware) nextValue, alreadyProcessed);
+			}
 		}
 	}
 }
