@@ -258,7 +258,7 @@ public class RunTests extends TestCase {
 //				unsafe.writeFile();
 //			}
 //		}
-		new RunTests().testUnsafeSync();
+		new RunTests().testSuite();
 	}
 	
 	public void testHandle() throws Exception

@@ -8,6 +8,9 @@ import java.util.List;
 
 public class Context extends ContextClassLoader {
 
+	// The root set is the set of "contextual" object we want to consider to force
+	// the migration. It should contains the global objects (i.e. classes), and
+	// also the objects that were used to "close over" in invoke/execute. 
 	private static List rootSet = new ArrayList();
 	
 	public Context(String suffix) {
