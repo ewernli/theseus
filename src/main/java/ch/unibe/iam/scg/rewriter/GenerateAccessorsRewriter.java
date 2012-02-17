@@ -149,12 +149,6 @@ public class GenerateAccessorsRewriter implements ClassRewriter {
 			
 		});
 		
-		if( ctField.getName().contains("_server") ) 
-		{
-			int k=0;
-			k++;
-		}
-		
 		int index = Arrays.asList(orderedFields).indexOf(ctField);
 		String getterCode = "public  " + ctField.getType().getName() + " "
 				+ getter

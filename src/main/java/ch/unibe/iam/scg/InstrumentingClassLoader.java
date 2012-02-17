@@ -89,13 +89,6 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 			String superClassName = clazz.getSuperclass().getName();
 			CtClass superClazz = null;
 			
-			if( clazz.getName().contains("Arrays$ArrayList") ||
-					clazz.getName().contains("AbstractCollection") ||
-					clazz.getName().contains("AbstractList")) {
-				int k=0;
-				k++;
-			}
-			
 			if( needsRewrite(superClassName))
 			{
 				 superClazz = findCtClass( rewriteName(superClassName) );
@@ -128,9 +121,6 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	    		
 	    		for( CtClass clazz2 : toRewire ) {
 	    			 try {
-	    				 if( clazz2.getName().contains("HashMap")) {
-	    					 int k=0; k++;
-	    				 }
 	    				 CodeConverter conv = new CodeConverter();
 	    				 CtClass indirectionClass = ClassPool.getDefault().get(ArrayInterceptor.class.getName());
 	    				 conv.replaceArrayAccess( indirectionClass, new CodeConverter.DefaultArrayAccessReplacementMethodNames());
@@ -168,14 +158,7 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	@Override
 	protected synchronized Class<?> loadClass(String name, boolean resolve)
 	throws ClassNotFoundException
-     {
-		if( name.equals("com.sun.org.apache.xerces.internal.parsers.XIncludeAwareParserConfiguration"))
-		{
-			int k = 0;
-			k++;
-			System.out.println("Find "+name);
-		}
-		
+     {		
 		//System.out.println("Load "+name );
 		
 		if( needsRewrite(name) ) { //@TODO check if already loaded
