@@ -47,7 +47,9 @@ public class Context extends ContextClassLoader {
 	{
 		Class contextClazz = Class.forName( className );
 		Constructor cst = contextClazz.getConstructor(String.class);
-		ContextClassLoader context = (ContextClassLoader) cst.newInstance( "$$2" );
+		String currentSuffix = this.suffix().substring(2);
+		String newSuffix = "$$" + ( Integer.valueOf(currentSuffix) + 1 );
+		ContextClassLoader context = (ContextClassLoader) cst.newInstance( newSuffix );
 		this.setNext(context);
 		return (Context) context;
 	}

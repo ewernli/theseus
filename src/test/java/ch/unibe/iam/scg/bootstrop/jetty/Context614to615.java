@@ -1,4 +1,4 @@
-package ch.unibe.iam.scg.jetty;
+package ch.unibe.iam.scg.bootstrop.jetty;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;

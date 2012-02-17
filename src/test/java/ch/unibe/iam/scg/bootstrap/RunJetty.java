@@ -7,22 +7,44 @@ import java.util.TimeZone;
 import javassist.ClassPool;
 
 import ch.unibe.iam.scg.ContextClassLoader;
+import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 
 public class RunJetty {
-	ClassPool cp = ClassPool.getDefault();
+	//ClassPool cp = ClassPool.getDefault();
 	
 	public static void main(String[] args) throws Exception {
-		new RunJetty().testServer();
+		new RunJetty().testServer(args);
 	}
 	
-	public void testServer() throws Exception
+	public static ContextClassLoader newContextClassLoader( String suffix )
 	{
-		//org.mortbay.jetty.Main.main(new String[]{ "9000", "/Users/ewernli/Downloads/" } );
+		return  new ContextClassLoader(suffix);
+	}
+	
+	
+	public void testServer(String[] args) throws Exception
+	{
+		ClassLoader loader1;
+		String className;
 		
-		ContextClassLoader loader = new ContextClassLoader("$$1");
-		Class clazz = loader.loadClass( "ch.unibe.iam.scg.test.core.org.mortbay.jetty.Main$$1" );
+		if( args[0].equals("0")) {
+			loader1 = this.getClass().getClassLoader();
+			className = "org.mortbay.jetty.Main";
+		}
+		else
+		{
+			String suffix = args[0];
+			loader1 = new ContextClassLoader("$$" + suffix);
+			className = "ch.unibe.iam.scg.test.core.org.mortbay.jetty.Main$$" + suffix;
+		}
+		Thread.currentThread().setContextClassLoader(loader1);
+		Class clazz = loader1.loadClass( className );
 		Object server = clazz.newInstance();
-		invoke1( server, "main", String[].class, new String[]{ "9000", "/Users/ewernli/Downloads/"  }); 
+		String[] params = new String[]{ args[1], args[2] };
+		ArrayInterceptor.registerArray(params);
+		invoke1( server, "main", String[].class, params ); 
+		loader1 = null;
+		System.gc();
 	}
 	
 	private Object invoke( Object receiver, String method ) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, SecurityException, NoSuchMethodException

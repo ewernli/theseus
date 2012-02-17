@@ -1,13 +1,14 @@
-package ch.unibe.iam.scg;
+package ch.unibe.iam.scg.util;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.lang.reflect.Constructor;
 
+import ch.unibe.iam.scg.ContextClassLoader;
+
 public class ContextUtil {
 	
-	private static int counter = 2;
 	
 	public static ContextClassLoader contextOf( Object anObject )
 	{
@@ -27,7 +28,9 @@ public class ContextUtil {
 				bufRead.close();
 				Class contextClazz = Class.forName( contextClassName );
 				Constructor cst = contextClazz.getConstructor(String.class);
-				ContextClassLoader context = (ContextClassLoader) cst.newInstance( "$$" + counter++ );
+				String currentSuffix = current.suffix().substring(2);
+				String newSuffix = "$$" + ( Integer.valueOf(currentSuffix) + 1 );
+				ContextClassLoader context = (ContextClassLoader) cst.newInstance( newSuffix );
 				current.setNext(context);
 				f.delete();
 				return context;
