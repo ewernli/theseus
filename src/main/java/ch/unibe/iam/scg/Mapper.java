@@ -53,7 +53,14 @@ public class Mapper {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} 
-				return toJvmName( rewriteName(name) );
+				
+				String s=rewriteName(name);
+				if( s.contains("SetXX1")) 
+				{
+					int k=0;				 
+					k++;
+				}
+				return toJvmName(s  );
 			}
 			else
 			{

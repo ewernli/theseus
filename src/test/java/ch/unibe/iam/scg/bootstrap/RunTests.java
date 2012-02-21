@@ -1,5 +1,9 @@
 package ch.unibe.iam.scg.bootstrap;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -9,11 +13,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.util.CheckClassAdapter;
+import org.objectweb.asm.util.TraceClassVisitor;
+
+import com.sun.org.apache.xalan.internal.xsltc.compiler.util.TestGenerator;
+
 import ch.unibe.iam.scg.Context;
 import ch.unibe.iam.scg.ContextAware;
 import ch.unibe.iam.scg.ContextClassLoader;
 import ch.unibe.iam.scg.ContextHandle;
 import ch.unibe.iam.scg.ContextInfo;
+import ch.unibe.iam.scg.rewriter.ConcurrencyControlRewriter;
 import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.MapDependenciesRewriter;
@@ -56,6 +68,8 @@ public class RunTests extends TestCase {
 		testUnsafeSync();
 		
 		testHandle();
+		testSync();
+		testGeneric();
 	}
 	
 	public void testSubclass() throws Exception
@@ -273,5 +287,48 @@ public class RunTests extends TestCase {
 		h = null;
 		System.gc();
 			
+	}
+	
+	public void testGeneric() throws Exception
+	{
+		Context loader = new Context("$$1");
+		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.Generic$$1");
+		Object node = clazz.newInstance();
+		invoke1( node, "set", Object.class, new Object() );
+	}
+	
+	public void testSync() throws Exception
+	{
+		Context loader = new Context("$$1");
+		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.Synchronized$$1");
+		Object node = clazz.newInstance();
+		
+//		File f = new File("ch/unibe/iam/scg/test/core/java/util/HashMapXX1.class");
+//		FileInputStream fis = new FileInputStream(f);
+//		byte b1[] = new byte[(int)f.length()];
+//		fis.read(b1);
+//		
+//		ClassReader cr = new ClassReader(b1); 
+//		ClassWriter cw = new ClassWriter(0);  // new ClassWriter(cr, 0); 
+//		TraceClassVisitor ca = new TraceClassVisitor( cw, new PrintWriter(System.out, true) );
+//		CheckClassAdapter cca = new CheckClassAdapter(ca); 
+//		ConcurrencyControlRewriter.Adapter ca2 = new ConcurrencyControlRewriter.Adapter(ca); 
+//		cr.accept(cca, 0); 
+//		byte[] b2 = cw.toByteArray(); 
+//		
+		
+		
+//		ClassPool cp = ClassPool.getDefault();
+//		CtClass clazz = cp.get("ch.unibe.iam.scg.test.Synchronized");
+//		byte[] b1 = clazz.toBytecode(); clazz.defrost();
+//		ClassReader cr = new ClassReader(b1); 
+//		ClassWriter cw = new ClassWriter(0);  // new ClassWriter(cr, 0); 
+//		TraceClassVisitor ca = new TraceClassVisitor( cw, new PrintWriter(System.out, true) );
+//		CheckClassAdapter cca = new CheckClassAdapter(ca); 
+//		ConcurrencyControlRewriter.Adapter ca2 = new ConcurrencyControlRewriter.Adapter(cca); 
+//		cr.accept(ca2, 0); 
+//		byte[] b2 = cw.toByteArray(); 
+//		CtClass clazz2 = cp.makeClass( new ByteArrayInputStream( b2 ));
+//		clazz2.writeFile();
 	}
 }

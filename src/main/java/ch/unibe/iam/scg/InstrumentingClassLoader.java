@@ -21,6 +21,7 @@ import javassist.CtClass;
 import javassist.CtConstructor;
 import javassist.NotFoundException;
 import ch.unibe.iam.scg.rewriter.AddContextAwarenessRewriter;
+import ch.unibe.iam.scg.rewriter.ConcurrencyControlRewriter;
 import ch.unibe.iam.scg.rewriter.GenerateAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.InterceptAccessorsRewriter;
 import ch.unibe.iam.scg.rewriter.MapDependenciesRewriter;
@@ -131,11 +132,18 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 	    				throw e2;
 	    			}
 	    		};
+	    			
+	    		for( CtClass clazz2 : toRewire ) {	
+	    			new ConcurrencyControlRewriter().rewrite(clazz2);
+	    		};
 	    		
 	    		for( CtClass clazz2 : toRewire ) {			
 	    			try {
-	    				clazz2.writeFile();
-	    				clazz2.defrost();
+	    				//@TODO we need to pick the fresh one because the 
+	    				//sync rewriter creates a new CtClass
+	    				CtClass clazz3 = cp.get( clazz2.getName() );
+	    				clazz3.writeFile();
+	    				clazz3.defrost();
 	    			}catch (IOException e2) {
 	    				// TODO Auto-generated catch block
 	    				e2.printStackTrace();
@@ -150,7 +158,9 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 		};
 		
 		//clazz.toClass();
-		return clazz;
+		//@TODO we need to pick the fresh one because the 
+		//sync rewriter creates a new CtClass
+		return cp.get( clazz.getName() );
 	}
 	
 	
