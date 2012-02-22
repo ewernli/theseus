@@ -76,6 +76,11 @@ public class ConcurrencyControlRewriter implements ClassRewriter {
 
 	public static class MethodAdapter extends PatternMethodAdapter {
 
+		final String targetOwner;
+		final String contextInfoOwner = "ch/unibe/iam/scg/ContextInfo";
+		final String contextInfoJvmName = "Lch/unibe/iam/scg/ContextInfo;";
+		final String objectJvmName = "Ljava/lang/Object;";
+		
 		CtClass target;
 		
 //		ALOAD 3
@@ -95,6 +100,7 @@ public class ConcurrencyControlRewriter implements ClassRewriter {
 			super(mv);
 			addSynchronized = add;
 			this.target = target; 
+			targetOwner = Descriptor.toJvmName(target.getName());
 		}
 		
 		@Override
@@ -125,6 +131,8 @@ public class ConcurrencyControlRewriter implements ClassRewriter {
 			
 			if( addSynchronized ) {
 				mv.visitVarInsn(Opcodes.ALOAD, 0); // this
+				mv.visitFieldInsn(Opcodes.GETFIELD, targetOwner, CONTEXT_INFO, contextInfoJvmName);
+				mv.visitFieldInsn(Opcodes.GETFIELD, contextInfoOwner, "id", objectJvmName);
 				mv.visitInsn(Opcodes.MONITORENTER);
 			}
 		}
@@ -135,6 +143,8 @@ public class ConcurrencyControlRewriter implements ClassRewriter {
 				if ((opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN)
 						|| opcode == Opcodes.ATHROW) {
 					mv.visitVarInsn(Opcodes.ALOAD, 0); // this
+					mv.visitFieldInsn(Opcodes.GETFIELD, targetOwner, CONTEXT_INFO, contextInfoJvmName);
+					mv.visitFieldInsn(Opcodes.GETFIELD, contextInfoOwner, "id", objectJvmName);
 					mv.visitInsn(Opcodes.MONITOREXIT);
 				}
 			}
@@ -144,12 +154,8 @@ public class ConcurrencyControlRewriter implements ClassRewriter {
 			}
 			else if (opcode == Opcodes.MONITORENTER && state == State.ALOAD_DUP_ASTORE ) {
 				// Bingo!
-				String targetOwner = Descriptor.toJvmName(target.getName());
-				String contextInfoOwner = "ch/unibe/iam/scg/ContextInfo";
-				String contextInfoJvmName = "Lch/unibe/iam/scg/ContextInfo;";
-				String objectJvmName = "Ljava/lang/Object;";
 				
-				mv.visitVarInsn( Opcodes.ALOAD, 0);
+				mv.visitVarInsn( Opcodes.ALOAD, 0); // this
 				mv.visitFieldInsn(Opcodes.GETFIELD, targetOwner, CONTEXT_INFO, contextInfoJvmName);
 				mv.visitFieldInsn(Opcodes.GETFIELD, contextInfoOwner, "id", objectJvmName);
 				//mv.visitVarInsn( Opcodes.ALOAD, aloadIndex);
