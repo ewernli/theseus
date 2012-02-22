@@ -80,6 +80,11 @@ public class ArrayInterceptor {
 		return array;
 	}
 	
+	public static Object unregisterArray( Object array ) {
+		arrayContextInfo.remove(array );
+		return array;
+	}
+	
 	public static Object newInstance( Class type, int size )
 	{
 		Object a = Array.newInstance(type,size);

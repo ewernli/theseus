@@ -9,11 +9,21 @@ public class ContextHandle {
 	public ContextHandle( Context ctx )
 	{
 		target = ctx;
+		System.out.println("Handle for context "+target.suffix());
 	}
 
+	public void release()
+	{
+		System.out.println("Release handle for context "+target.suffix());
+		target.disposeHandle();
+		target = null;
+	}
+	
 	@Override
 	protected void finalize() throws Throwable {
-		System.out.println("Handle finalized");
-		target.disposeHandle();
+		if( target != null ) {
+			System.out.println("Handle finalized for context "+target.suffix());
+			target.disposeHandle();
+		}
 	}
 }

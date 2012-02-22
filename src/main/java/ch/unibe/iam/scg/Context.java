@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import ch.unibe.iam.scg.rewriter.ClassRewriter;
+import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 import ch.unibe.iam.scg.util.IdentitySet;
 
 public class Context extends ContextClassLoader {
@@ -96,7 +97,7 @@ public class Context extends ContextClassLoader {
 	private void forceRelease()
 	{
 		try {
-			System.out.println("Force release");
+			System.out.println("Force release "+this.suffix());
 			Set alreadyProcessed = new IdentitySet();
 			
 			for( Object toRelease : rootSet )
@@ -149,8 +150,15 @@ public class Context extends ContextClassLoader {
 			{
 				nextValue = this.next.migrateToNextIfNecessary(prevValue);
 			}
-			// sync primitive types
-			nextF.set(succ, nextValue);
+			else if ( prevValue.getClass().isArray() )
+			{
+				//@TODO handle correctly
+			}	
+			else
+			{
+				// sync primitive types
+				nextF.set(succ, nextValue);
+			}
 			
 			// release old ref
 			prevF.set(prev,null);
@@ -169,7 +177,11 @@ public class Context extends ContextClassLoader {
 			if( nextValue instanceof ContextAware ) {
 				forceSync( (ContextAware) nextValue, alreadyProcessed);
 			}
-			//@TODO handle other types, e.g. array
+			else if ( nextValue.getClass().isArray() )
+			{
+				//@TODO handle correctly
+				ArrayInterceptor.unregisterArray( nextValue );
+			}
 		}
 	}
 }
