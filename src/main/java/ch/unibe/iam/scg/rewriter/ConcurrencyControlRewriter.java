@@ -54,23 +54,30 @@ public class ConcurrencyControlRewriter implements ClassRewriter {
 				String signature, String[] exceptions) {
 			MethodVisitor mv;
 		
-			if( (access & Opcodes.ACC_SYNCHRONIZED) > 0 ) {
-				mv = cv.visitMethod(access & ~ Opcodes.ACC_SYNCHRONIZED, 
-						name, desc, signature, exceptions);
-				if (mv != null) {
-					mv = new MethodAdapter(mv, true, target);
-				}
-				return mv;
+			// @TODO static method do not have a concept of "this", 
+			// we do not alter them
+			if ( (access & Opcodes.ACC_STATIC) > 0 ) {
+				return cv.visitMethod(access, name, desc, signature, exceptions);
 			}
 			else
 			{
-				mv = cv.visitMethod(access, name, desc, signature, exceptions);
-				if (mv != null) {
-					mv = new MethodAdapter(mv, false, target);
+				if( (access & Opcodes.ACC_SYNCHRONIZED) > 0 ) {
+					mv = cv.visitMethod(access & ~ Opcodes.ACC_SYNCHRONIZED, 
+							name, desc, signature, exceptions);
+					if (mv != null) {
+						mv = new MethodAdapter(mv, true, target);
+					}
+					return mv;
 				}
-				return mv;
+				else
+				{
+					mv = cv.visitMethod(access, name, desc, signature, exceptions);
+					if (mv != null) {
+						mv = new MethodAdapter(mv, false, target);
+					}
+					return mv;
+				}
 			}
-			
 		}
 	}
 
