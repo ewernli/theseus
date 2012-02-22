@@ -55,11 +55,6 @@ public class Mapper {
 				} 
 				
 				String s=rewriteName(name);
-				if( s.contains("SetXX1")) 
-				{
-					int k=0;				 
-					k++;
-				}
 				return toJvmName(s  );
 			}
 			else

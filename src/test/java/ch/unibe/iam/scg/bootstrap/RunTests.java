@@ -302,6 +302,8 @@ public class RunTests extends TestCase {
 		Context loader = new Context("$$1");
 		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.Synchronized$$1");
 		Object node = clazz.newInstance();
+		Object res = invoke( node, "sync1" );
+		assert( res != null);
 		
 //		File f = new File("ch/unibe/iam/scg/test/core/java/util/HashMapXX1.class");
 //		FileInputStream fis = new FileInputStream(f);

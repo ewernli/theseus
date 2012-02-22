@@ -12,6 +12,11 @@ public class Synchronized {
 	
 	public  Object  sync2()
 	{	
+		
+//		ALOAD 3
+//	    DUP
+//	    ASTORE 1
+//	    MONITORENTER
 		synchronized (this) {
 			return lock;
 		}
@@ -19,6 +24,10 @@ public class Synchronized {
 	
 
 	public void sync3 (Object f) {
+		
+//		 ALOAD 1
+//		    DUP
+//		    ASTORE 2
 	    synchronized(f) {
 	        sync1();
 	    }
@@ -26,6 +35,9 @@ public class Synchronized {
 	
 	public  int block() throws InterruptedException
 	{	
+//		ALOAD 3
+//	    DUP
+//	    ASTORE 1
 		synchronized (lock) {
 			lock.wait();
 			return 42;
