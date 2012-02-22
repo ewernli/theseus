@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import ch.unibe.iam.scg.rewriter.ClassRewriter;
 import ch.unibe.iam.scg.util.IdentitySet;
 
 public class Context extends ContextClassLoader {
@@ -15,6 +16,7 @@ public class Context extends ContextClassLoader {
 	// The root set is the set of "contextual" object we want to consider to force
 	// the migration. It should contains the global objects (i.e. classes), and
 	// also the objects that were used to "close over" in invoke/execute. 
+	// @TODO should not be static
 	private static List rootSet = new ArrayList();
 	
 	public Context(String suffix) {
@@ -70,7 +72,7 @@ public class Context extends ContextClassLoader {
 	@Override
 	protected void finalize() throws Throwable {
 		
-		System.out.println("*****Finalized");
+		System.out.println("Finalized context "+this.suffix());
 		super.finalize();
 	}
 	
@@ -100,18 +102,26 @@ public class Context extends ContextClassLoader {
 			for( Object toRelease : rootSet )
 			{
 				if( toRelease instanceof ContextAware ) {
-					
 						forceSync( (ContextAware) toRelease, alreadyProcessed);
-					
 				}
+				//@TODO handle other types, e.g. array
 			}
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			
+			rootSet.clear();
+			
+			// remove itself from the ancestor. Should not be necessary
+			this.next.prev.clear();
+			this.next = null;
+			
+		} catch (Exception e) {
+			throw new RuntimeException( "Could not force release", e);
 		}
 	}
 	
-	private void forceSync( ContextAware succ, Set alreadyProcessed ) throws IllegalAccessException
+	private void forceSync( ContextAware succ, Set alreadyProcessed ) throws IllegalAccessException, SecurityException, NoSuchFieldException
 	{
+		// this is the OLD context
+		
 		if( alreadyProcessed.contains(succ) )
 		{
 			return;
@@ -126,26 +136,40 @@ public class Context extends ContextClassLoader {
 		
 		for( Field nextF : fields )
 		{
-			Field prevF = nextF; // wrong
+			if( nextF.getName().equals( ClassRewriter.CONTEXT_INFO )) 
+			{ 
+				continue;
+			}
+			
+			// doesn't always work
+			Field prevF = prev.getClass().getField(nextF.getName());
 			Object prevValue = prevF.get(prev);
 			Object nextValue = prevValue;
 			if( prevValue instanceof ContextAware )
 			{
-				nextValue = this.migrateToNextIfNecessary(prevValue);
+				nextValue = this.next.migrateToNextIfNecessary(prevValue);
 			}
+			// sync primitive types
 			nextF.set(succ, nextValue);
+			
+			// release old ref
+			prevF.set(prev,null);
 		}
 		
-		// forced sync
+		// make succ local again
 		succ.getContextInfo().dirty = 0x000000;
+		succ.getContextInfo().prev = null;
+		succ.getContextInfo().next = null; // not necessary
+		succ.getContextInfo().global = false;
 		
 		// recurse
 		for( Field nextF : fields )
 		{
-			Object nextValue = nextF.get(prev);
+			Object nextValue = nextF.get(succ);
 			if( nextValue instanceof ContextAware ) {
 				forceSync( (ContextAware) nextValue, alreadyProcessed);
 			}
+			//@TODO handle other types, e.g. array
 		}
 	}
 }

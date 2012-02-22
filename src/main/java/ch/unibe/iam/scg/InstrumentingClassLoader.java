@@ -190,7 +190,9 @@ public class InstrumentingClassLoader  extends javassist.Loader {
 		}
 		return domain;
 	}
-	private static HashMap loadedClasses = new HashMap();
+	
+	//@TODO should be static? 
+	private  HashMap loadedClasses = new HashMap();
 	
 	@Override
 	protected Class<?> findClass(String className) throws ClassNotFoundException {

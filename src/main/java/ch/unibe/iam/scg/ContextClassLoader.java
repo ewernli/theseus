@@ -29,8 +29,8 @@ import ch.unibe.iam.scg.rewriter.helper.ArrayInterceptor;
 
 public class ContextClassLoader extends InstrumentingClassLoader {
 	
-	private ContextClassLoader next;
-	private WeakReference<ContextClassLoader> prev;
+	protected ContextClassLoader next;
+	protected WeakReference<ContextClassLoader> prev;
 	
 	//@TODO it's not a true prev-next relationship
 	public void setNext( ContextClassLoader n )
@@ -328,61 +328,65 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		if( prev == null ) {
 			return null;
 		}
-		else if( prev instanceof ContextAware )
-		{
-			ContextAware prevAware = (ContextAware) prev;
-			if( ! prevAware.getContextInfo().global ||
-					( prevAware.getContextInfo().global && prevAware.getContextInfo().next == null)) 
-				// this is an old migrated instance, it should be not global and prev=null, next=null
-				// but this is not the case because we don't have forced garbage collection
+		
+		// migration is exclusive
+		synchronized( prev ) {
+			if( prev instanceof ContextAware )
 			{
-				return prevAware.migrateToNext( ((ContextClassLoader)this));
+				ContextAware prevAware = (ContextAware) prev;
+				if( ! prevAware.getContextInfo().global ||
+						( prevAware.getContextInfo().global && prevAware.getContextInfo().next == null)) 
+					// this is an old migrated instance, it should be not global and prev=null, next=null
+					// but this is not the case because we don't have forced garbage collection
+				{
+					return prevAware.migrateToNext( ((ContextClassLoader)this));
+				}
+				else {
+					return prevAware.getContextInfo().next;
+				}
 			}
-			else {
-				return prevAware.getContextInfo().next;
+			else if ( prev instanceof int[] ) {
+				int[] prevArray = (int[]) prev;
+				
+				if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
+				{
+					return migrateIntArrayToNext(prevArray);
+				}
+				else {
+					return ArrayInterceptor.contextInfoOfArray(prev).next;
+				}	
+				
+			} else if ( prev instanceof byte[] ) {
+				byte[] prevArray = (byte[]) prev;
+				
+				if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
+				{
+					return migrateByteArrayToNext(prevArray);
+				}
+				else {
+					return ArrayInterceptor.contextInfoOfArray(prev).next ;
+				}	
+				
+				
+			} else if ( prev instanceof Object[] ) {
+				Object[] prevArray = (Object[]) prev;
+				
+				if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
+				{
+					return migrateObjArrayToNext(prevArray);
+				}
+				else {
+					return ArrayInterceptor.contextInfoOfArray(prev).next ;
+				}	
+			} else if( prev.getClass().isArray() ){
+				throw new RuntimeException("Unsupported type:" + prev.getClass().toString() );
+			} else if( prev.getClass() == Class.class ){
+				return this.resolve( ((Class)prev).getName());
 			}
-		}
-		else if ( prev instanceof int[] ) {
-			int[] prevArray = (int[]) prev;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
+			else
 			{
-				return migrateIntArrayToNext(prevArray);
+				return prev;
 			}
-			else {
-				return ArrayInterceptor.contextInfoOfArray(prev).next;
-			}	
-			
-		} else if ( prev instanceof byte[] ) {
-			byte[] prevArray = (byte[]) prev;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
-			{
-				return migrateByteArrayToNext(prevArray);
-			}
-			else {
-				return ArrayInterceptor.contextInfoOfArray(prev).next ;
-			}	
-			
-			
-		} else if ( prev instanceof Object[] ) {
-			Object[] prevArray = (Object[]) prev;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
-			{
-				return migrateObjArrayToNext(prevArray);
-			}
-			else {
-				return ArrayInterceptor.contextInfoOfArray(prev).next ;
-			}	
-		} else if( prev.getClass().isArray() ){
-			throw new RuntimeException("Unsupported type:" + prev.getClass().toString() );
-		} else if( prev.getClass() == Class.class ){
-			return this.resolve( ((Class)prev).getName());
-		}
-		else
-		{
-			return prev;
 		}
 	}
 	

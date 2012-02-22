@@ -29,9 +29,9 @@ public class ConcurrencyControlRewriter implements ClassRewriter {
 			byte[] b1 = clazz.toBytecode(); clazz.defrost();
 			ClassReader cr = new ClassReader(b1); 
 			ClassWriter cw = new ClassWriter(0);  // new ClassWriter(cr, 0); 
-			TraceClassVisitor ca = new TraceClassVisitor( cw, new PrintWriter(System.out, true) );
+			//TraceClassVisitor ca = new TraceClassVisitor( cw, new PrintWriter(System.out, true) );
 			//CheckClassAdapter cca = new CheckClassAdapter(ca); 
-			ConcurrencyControlRewriter.Adapter ca2 = new ConcurrencyControlRewriter.Adapter(ca, clazz); 
+			ConcurrencyControlRewriter.Adapter ca2 = new ConcurrencyControlRewriter.Adapter(cw, clazz); 
 			cr.accept(ca2, 0); 
 			byte[] b2 = cw.toByteArray(); 
 			cp.makeClass( new ByteArrayInputStream( b2 ));

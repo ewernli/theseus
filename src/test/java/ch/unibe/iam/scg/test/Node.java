@@ -46,4 +46,9 @@ public class Node {
 		else
 			return "[" + a.toString() + "," + s + "," + b.toString() + "]";
 	}
+	
+	public Node self() {
+		return this;
+	}
+	
 }

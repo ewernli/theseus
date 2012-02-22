@@ -277,16 +277,44 @@ public class RunTests extends TestCase {
 	
 	public void testHandle() throws Exception
 	{
-		Context loader = new Context("$$1");
-		Class clazz = loader.loadClass("ch.unibe.iam.scg.test.SubNode$$1");
-		Object node = clazz.newInstance();
-		invoke( node,  "deepen" );
-		System.out.println( node.toString() );
+		Context prevLoader = new Context("$$1");
+		Context nextLoader = prevLoader.newSuccessor( "ch.unibe.iam.scg.Context" );
+		ContextHandle h = prevLoader.getHandle();
 		
-		ContextHandle h = loader.getHandle();
+		Class clazz = prevLoader.loadClass("ch.unibe.iam.scg.test.CollectableNode$$1");
+		Object node = clazz.newInstance();
+		invoke( node, "deepen" ); 
+		
+		Object newNode = nextLoader.invoke( node, "self", null, null ); 
+		
+		node = null;		
 		h = null;
+		clazz = null;
+		prevLoader = null;
+		
 		System.gc();
-			
+		
+		System.out.println( newNode );
+		
+		System.gc();
+		
+		h = nextLoader.getHandle();
+		nextLoader = nextLoader.newSuccessor( "ch.unibe.iam.scg.Context" );
+		newNode = nextLoader.invoke( newNode, "self", null, null );
+		h = null;
+		
+		System.gc();
+		
+		System.out.println( newNode );
+		
+		System.gc();
+		
+		nextLoader = null;
+		newNode = null;
+		
+		System.gc();
+		
+		System.out.println( "Over" );
 	}
 	
 	public void testGeneric() throws Exception
