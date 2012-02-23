@@ -98,20 +98,27 @@ public class Context extends ContextClassLoader {
 	private void forceRelease()
 	{
 		try {
-			System.out.println("Force release "+this.suffix());
 			Set alreadyProcessed = new IdentitySet();
+			
+			System.out.println("Force release "+this.suffix());
+			long t = System.currentTimeMillis();
 			
 			for( Object toRelease : rootSet )
 			{
 				if( toRelease instanceof ContextAware ) {
-						forceSync( (ContextAware) toRelease, alreadyProcessed);
+					forceSyncObject( (ContextAware) toRelease, alreadyProcessed);
+				} else if ( toRelease instanceof Object[] ) {
+					forceSyncArray( (Object[]) toRelease, alreadyProcessed);
 				}
-				//@TODO handle other types, e.g. array
 			}
+			
+			t = System.currentTimeMillis()-t;
+			System.out.println(alreadyProcessed.size() + " object released in "+t+" ms");
 			
 			rootSet.clear();
 			
 			// remove itself from the ancestor. Should not be necessary
+			// given it's a weak reference
 			this.next.prev.clear();
 			this.next = null;
 			
@@ -120,7 +127,7 @@ public class Context extends ContextClassLoader {
 		}
 	}
 	
-	private void forceSync( ContextAware succ, Set alreadyProcessed ) throws IllegalAccessException, SecurityException, NoSuchFieldException
+	private void forceSyncObject( ContextAware succ, Set alreadyProcessed ) throws IllegalAccessException, SecurityException, NoSuchFieldException
 	{
 		System.out.println("Force sync of "+succ.getClass().getName());
 		// this is the OLD context
@@ -175,14 +182,7 @@ public class Context extends ContextClassLoader {
 				} 
 				
 				// force new value
-				try {
 				nextF.set(succ, nextValue);
-				}
-				catch( Exception e )
-				{
-					int k=0;
-					k++;
-				}
 			}
 			
 			// make succ local again
@@ -206,7 +206,7 @@ public class Context extends ContextClassLoader {
 			
 			Object nextValue = nextF.get(succ);
 			if( nextValue instanceof ContextAware ) {
-				forceSync( (ContextAware) nextValue, alreadyProcessed);
+				forceSyncObject( (ContextAware) nextValue, alreadyProcessed);
 			}
 			else if ( nextValue instanceof Object[] )
 			{
@@ -217,7 +217,6 @@ public class Context extends ContextClassLoader {
 	
 	private void forceSyncArray( Object[] succ, Set alreadyProcessed ) throws IllegalAccessException, SecurityException, NoSuchFieldException
 	{
-
 		System.out.println("Force sync of "+succ.getClass().getName());
 		// this is the OLD context
 		
@@ -262,7 +261,7 @@ public class Context extends ContextClassLoader {
 		{
 			Object nextValue = succ[i];
 			if( nextValue instanceof ContextAware ) {
-				forceSync( (ContextAware) nextValue, alreadyProcessed);
+				forceSyncObject( (ContextAware) nextValue, alreadyProcessed);
 			}
 			else if ( nextValue instanceof Object[] )
 			{
