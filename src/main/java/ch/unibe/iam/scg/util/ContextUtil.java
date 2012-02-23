@@ -5,16 +5,17 @@ import java.io.File;
 import java.io.FileReader;
 import java.lang.reflect.Constructor;
 
+import ch.unibe.iam.scg.Context;
 import ch.unibe.iam.scg.ContextClassLoader;
 
 public class ContextUtil {
 	
 	
-	public static ContextClassLoader contextOf( Object anObject )
+	public static Context contextOf( Object anObject )
 	{
-		return (ContextClassLoader) (anObject.getClass().getClassLoader());
+		return (Context) (anObject.getClass().getClassLoader());
 	}
-	public static synchronized ContextClassLoader nextContext( ContextClassLoader current )
+	public static synchronized Context nextContext( Context current )
 	{
 		try
 		{
@@ -30,7 +31,7 @@ public class ContextUtil {
 				Constructor cst = contextClazz.getConstructor(String.class);
 				String currentSuffix = current.suffix().substring(2);
 				String newSuffix = "$$" + ( Integer.valueOf(currentSuffix) + 1 );
-				ContextClassLoader context = (ContextClassLoader) cst.newInstance( newSuffix );
+				Context context = (Context) cst.newInstance( newSuffix );
 				current.setNext(context);
 				f.delete();
 				return context;

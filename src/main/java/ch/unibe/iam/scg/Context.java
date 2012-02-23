@@ -4,6 +4,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -34,10 +35,10 @@ public class Context extends ContextClassLoader {
 			if( ! contextReceiver.getClass().getClassLoader().equals(this))
 			{
 				finalReceiver = ((ContextAware)receiver).migrateToNext(this);
+				rootSet.add(finalReceiver);
 			}
 		}
 		
-		rootSet.add(finalReceiver);
 		Method m = finalReceiver.getClass().getMethod(name, parameterTypes==null?new Class[0]:parameterTypes);
 		return m.invoke(finalReceiver, args==null?new Object[0]:args);
 	}
@@ -52,10 +53,10 @@ public class Context extends ContextClassLoader {
 			if( ! contextReceiver.getClass().getClassLoader().equals(this))
 			{
 				finalReceiver =  (Runnable) ((ContextAware)run).migrateToNext(this);
+				rootSet.add(finalReceiver);
 			}
 		}
 		
-		rootSet.add(finalReceiver);
 		finalReceiver.run();
 	}
 	
@@ -121,6 +122,7 @@ public class Context extends ContextClassLoader {
 	
 	private void forceSync( ContextAware succ, Set alreadyProcessed ) throws IllegalAccessException, SecurityException, NoSuchFieldException
 	{
+		System.out.println("Force sync of "+succ.getClass().getName());
 		// this is the OLD context
 		
 		if( alreadyProcessed.contains(succ) )
@@ -132,71 +134,139 @@ public class Context extends ContextClassLoader {
 			alreadyProcessed.add(succ);
 		}
 		
-		Object prev = succ.getContextInfo().prev;
-		Field[] fields = succ.getClass().getFields();
+		Field[] nextFields = nonFinalfieldsOfClassesOnly( succ.getClass() );
 		
-		for( Field nextF : fields )
+		// should normally not happen
+		//if( ! succ.getContextInfo().global ) 
 		{
-			if( nextF.getName().equals( ClassRewriter.CONTEXT_INFO )) 
-			{ 
+		
+			Object prev = succ.getContextInfo().prev;
+			Field[] prevFields = nonFinalfieldsOfClassesOnly( prev.getClass() );
+		
+			for( int i=0;i<nextFields.length;i++ )
+			{
+				Field nextF = nextFields[i];
+				if( nextF.getName().equals( ClassRewriter.CONTEXT_INFO )) 
+				{ 
+					continue;
+				}
+				// @TODO skip private fields that would cause an error. Such fields occur
+				// if an updatable classe exntesd a non-updatable one, e.g. ShutdownThread
+				// @TODO static fields are also excluded
+				if( Modifier.isPrivate(nextF.getModifiers()) || 
+					Modifier.isStatic(nextF.getModifiers()))
+				{
+					continue;
+				}
+				
+				// doesn't always work
+				Field prevF = prevFields[i];
+				Object prevValue = prevF.get(prev);				
+				Object nextValue = prevValue; // primitive types and array
+				if( prevValue instanceof ContextAware )
+				{
+					nextValue = this.next.migrateToNextIfNecessary(prevValue);
+					prevF.set(prev,null);
+				}
+				else if ( prevValue instanceof Object[]  )
+				{		
+					nextValue = this.next.migrateToNextIfNecessary(prevValue);
+					prevF.set(prev,null); 
+				} 
+				
+				// force new value
+				try {
+				nextF.set(succ, nextValue);
+				}
+				catch( Exception e )
+				{
+					int k=0;
+					k++;
+				}
+			}
+			
+			// make succ local again
+			succ.getContextInfo().dirty = 0x000000;
+			succ.getContextInfo().prev = null;
+			succ.getContextInfo().next = null; // not necessary
+			succ.getContextInfo().global = false;
+		}
+		
+		// recurse
+		for( Field nextF : nextFields )
+		{
+			// @TODO skip private fields that would cause an error. Such fields occur
+			// if an updatable classe exntesd a non-updatable one, e.g. ShutdownThread
+			// @TODO static fields are also excluded
+			if( Modifier.isPrivate(nextF.getModifiers()) || 
+				Modifier.isStatic(nextF.getModifiers()))
+			{
 				continue;
 			}
 			
-			// doesn't always work
-			Field prevF = prev.getClass().getField(nextF.getName());
-			Object prevValue = prevF.get(prev);
+			Object nextValue = nextF.get(succ);
+			if( nextValue instanceof ContextAware ) {
+				forceSync( (ContextAware) nextValue, alreadyProcessed);
+			}
+			else if ( nextValue instanceof Object[] )
+			{
+				forceSyncArray( (Object[])nextValue, alreadyProcessed);
+			}
+		}
+	}
+	
+	private void forceSyncArray( Object[] succ, Set alreadyProcessed ) throws IllegalAccessException, SecurityException, NoSuchFieldException
+	{
+
+		System.out.println("Force sync of "+succ.getClass().getName());
+		// this is the OLD context
+		
+		if( alreadyProcessed.contains(succ) )
+		{
+			return;
+		}
+		else
+		{
+			alreadyProcessed.add(succ);
+		}
+		
+		ContextInfo succInfo = ArrayInterceptor.contextInfoOfArray(succ);
+		Object[] prev = (Object[]) succInfo.prev;
+		
+		for( int i=0; i<prev.length;i++ )
+		{
+			Object prevValue = prev[i];
 			Object nextValue = prevValue;
 			if( prevValue instanceof ContextAware )
 			{
 				nextValue = this.next.migrateToNextIfNecessary(prevValue);
 			}
-			else if ( prevValue.getClass().isArray() )
-			{
-				//@TODO handle correctly
-			}	
-			else
-			{
-				// sync primitive types
-				nextF.set(succ, nextValue);
-			}
+			else if ( prevValue instanceof Object[]  )
+			{		
+				nextValue = this.next.migrateToNextIfNecessary(prevValue);
+			} 
 			
+			succ[i] = nextValue;
 			// release old ref
-			prevF.set(prev,null);
+			prev[i] = null;
 		}
 		
 		// make succ local again
-		succ.getContextInfo().dirty = 0x000000;
-		succ.getContextInfo().prev = null;
-		succ.getContextInfo().next = null; // not necessary
-		succ.getContextInfo().global = false;
+		succInfo.dirty = 0x000000;
+		succInfo.prev = null;
+		succInfo.next = null; // not necessary
+		succInfo.global = false;
 		
 		// recurse
-		for( Field nextF : fields )
+		for( int i=0 ; i<succ.length;i++ )
 		{
-			Object nextValue = nextF.get(succ);
+			Object nextValue = succ[i];
 			if( nextValue instanceof ContextAware ) {
 				forceSync( (ContextAware) nextValue, alreadyProcessed);
 			}
-			else if ( nextValue.getClass().isArray() )
+			else if ( nextValue instanceof Object[] )
 			{
-				//@TODO handle correctly
-				
-				alreadyProcessed.add(nextValue);
-				ContextInfo info = ArrayInterceptor.contextInfoOfArray(nextValue);
-				ArrayInterceptor.unregisterArray(info.prev);
-				info.prev = null;
-				info.next =null;
-				info.global = false;
-				info.dirty= 0x000000;
-				
-				if( nextValue instanceof  Object[])
-				{
-					for( Object o : ((Object[])nextValue)) {
-						if( o instanceof ContextAware ) {
-							forceSync( (ContextAware) o, alreadyProcessed);
-						}
-					}
-				}
+				forceSyncArray( (Object[])nextValue, alreadyProcessed);
 			}
 		}
 	}
