@@ -80,18 +80,23 @@ public class Context extends ContextClassLoader {
 	
 	private int handleCount = 0;
 	
-	public ContextHandle getHandle()
+	public synchronized ContextHandle getHandle()
 	{
 		handleCount++;
 		return new ContextHandle(this);
 	}
 	
-	public void disposeHandle()
+	public synchronized void  disposeHandle()
 	{
 		handleCount--;
 		if( handleCount==0)
 		{
-			this.forceRelease();
+			new Thread( new Runnable() {
+				public void run() {
+					Context.this.forceRelease();
+				}
+			}).start();
+			
 		}
 	}
 	

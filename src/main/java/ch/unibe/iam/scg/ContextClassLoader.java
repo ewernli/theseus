@@ -134,6 +134,8 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 					
 					if( info.next == null && info.prev != null )
 					{
+						//@TODO read info.prev once, and pass it down the call chain
+						// to prevent side effects from concurrent threads
 						synchronizeFromPrev(obj,info,selectedFieldPosition);
 					}
 					else if ( info.prev == null && info.next != null)
