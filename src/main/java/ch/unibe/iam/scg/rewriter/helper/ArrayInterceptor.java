@@ -12,12 +12,12 @@ public class ArrayInterceptor {
 	 // ArrayInterceptor.arrayWriteInt(ai, 0, 2);
 	  
 	public static void arrayWriteInt( Object array, int pos, int value ) {
-		ContextClassLoader.synchronizeArrayWrite(array, pos);
+		//ContextClassLoader.synchronizeArrayWrite(array, pos);
 		((int[])array)[ pos ] = value;
 	}
 	
 	public static int arrayReadInt( Object array, int pos ) {
-		ContextClassLoader.synchronizeArrayRead(array, pos);
+		//ContextClassLoader.synchronizeArrayRead(array, pos);
 		return ((int[])array)[ pos ];
 	}
 	
@@ -32,17 +32,17 @@ public class ArrayInterceptor {
 	}
 	
 	public static void arrayWriteLong( Object array, int pos, long value ) {
-		ContextClassLoader.synchronizeArrayWrite(array, pos);
+		//ContextClassLoader.synchronizeArrayWrite(array, pos);
 		((long[])array)[ pos ] = value;
 	}
 	
 	public static long arrayReadLong( Object array, int pos ) {
-		ContextClassLoader.synchronizeArrayRead(array, pos);
+		//ContextClassLoader.synchronizeArrayRead(array, pos);
 		return ((long[])array)[ pos ];
 	}
 	
 	public static void arrayWriteByteOrBoolean( Object array, int pos, byte value ) {
-		ContextClassLoader.synchronizeArrayWrite(array, pos);
+		//ContextClassLoader.synchronizeArrayWrite(array, pos);
 		if( array instanceof byte[] )
 			((byte[])array)[ pos ] = value;
 		else
@@ -50,7 +50,7 @@ public class ArrayInterceptor {
 	}
 	
 	public static byte arrayReadByteOrBoolean( Object array, int pos ) {
-		ContextClassLoader.synchronizeArrayRead(array, pos);
+		//ContextClassLoader.synchronizeArrayRead(array, pos);
 		if( array instanceof byte[] )
 			return ((byte[])array)[ pos ];
 		else
@@ -58,12 +58,12 @@ public class ArrayInterceptor {
 	}
 	
 	public static void arrayWriteChar( Object array, int pos, char value ) {
-		ContextClassLoader.synchronizeArrayWrite(array, pos);
+		//ContextClassLoader.synchronizeArrayWrite(array, pos);
 		((char[])array)[ pos ] = value;
 	}
 	
 	public static char arrayReadChar( Object array, int pos ) {
-		ContextClassLoader.synchronizeArrayRead(array, pos);
+		//ContextClassLoader.synchronizeArrayRead(array, pos);
 		return ((char[])array)[ pos ];
 	}
 	

@@ -244,18 +244,8 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		{
 			if( info.next == null && info.prev != null )
 			{
-				if( obj instanceof int[] )
-				{
-					int[] a = (int[]) obj;
-					System.arraycopy( info.prev, 0, a, 0, a.length);	
-				}
-				else if( obj instanceof byte[] )
-				{
-					byte[] a = (byte[]) obj;
-					System.arraycopy( info.prev, 0, a, 0, a.length);	
-				}
 				//@TODO thread aren't nice for us, should be handled one way of the other
-				else if( obj instanceof  Object[] )
+				if( obj instanceof  Object[] )
 				{
 					Object[] oldObjs = (Object[]) info.prev;
 					Object[] objs = (Object[]) obj;	
@@ -276,20 +266,14 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				}
 				else 
 				{
-					throw new RuntimeException("Not implemented yet");
+					throw new RuntimeException("Should not happen");
 				}
 				info.dirty = 0x0;
 			}
 			else if ( info.prev == null && info.next != null)
 			{
-				if( obj instanceof int[] )
-				{
-					int[] a = (int[]) obj;
-					//@TODO will not work for Object[]	-- need to migrate if necessary
-					System.arraycopy( info.next, 0, a, 0, a.length);			
-				}
 				//@TODO thread aren't nice for us, should be handled one way of the other
-				else if( obj instanceof  Object[] )
+				if( obj instanceof  Object[] )
 				{
 					Object[] newObjs = (Object[]) info.next;
 					Object[] objs = (Object[]) obj;	
@@ -310,7 +294,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				}
 				else 
 				{
-					throw new RuntimeException("Not implemented yet");
+					throw new RuntimeException("Should not happen");
 				}
 				info.dirty = 0x0;
 			}
@@ -345,30 +329,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 					return prevAware.getContextInfo().next;
 				}
 			}
-			else if ( prev instanceof int[] ) {
-				int[] prevArray = (int[]) prev;
-				
-				if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
-				{
-					return migrateIntArrayToNext(prevArray);
-				}
-				else {
-					return ArrayInterceptor.contextInfoOfArray(prev).next;
-				}	
-				
-			} else if ( prev instanceof byte[] ) {
-				byte[] prevArray = (byte[]) prev;
-				
-				if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
-				{
-					return migrateByteArrayToNext(prevArray);
-				}
-				else {
-					return ArrayInterceptor.contextInfoOfArray(prev).next ;
-				}	
-				
-				
-			} else if ( prev instanceof Object[] ) {
+			else if ( prev instanceof Object[] ) {
 				Object[] prevArray = (Object[]) prev;
 				
 				if( ! ArrayInterceptor.contextInfoOfArray(prev).global )
@@ -378,13 +339,11 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				else {
 					return ArrayInterceptor.contextInfoOfArray(prev).next ;
 				}	
-			} else if( prev.getClass().isArray() ){
-				throw new RuntimeException("Unsupported type:" + prev.getClass().toString() );
 			} else if( prev.getClass() == Class.class ){
 				return this.resolve( ((Class)prev).getName());
-			}
-			else
-			{
+			} else if( prev.getClass().isArray() ){
+				return prev;
+			} else {
 				return prev;
 			}
 		}
@@ -418,30 +377,7 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				return nextAware.getContextInfo().prev;
 			}
 		} 
-		else  if ( next instanceof int[] ) {
-			int[] nextArray = (int[]) next;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(next).global )
-			{
-				return migrateIntArrayToPrev(nextArray);
-			}
-			else {
-				return ArrayInterceptor.contextInfoOfArray(next).prev;
-			}	
-			
-		} else if ( next instanceof byte[] ) {
-			byte[] nextArray = (byte[]) next;
-			
-			if( ! ArrayInterceptor.contextInfoOfArray(next).global )
-			{
-				return migrateByteArrayToPrev(nextArray);
-			}
-			else {
-				return ArrayInterceptor.contextInfoOfArray(next).prev;
-			}	
-			
-			
-		} else if ( next instanceof Object[] ) {
+		else if ( next instanceof Object[] ) {
 			Object[] nextArray = (Object[]) next;
 			
 			if( ! ArrayInterceptor.contextInfoOfArray(next).global )
@@ -452,12 +388,11 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 				return ArrayInterceptor.contextInfoOfArray(next).next;
 			}	
 			// @TODO this include null -- is that correct?
-		} else if( next.getClass().isArray() ){
-			throw new RuntimeException("Unsupported type:" + next.getClass().toString() );
 		} else if( next.getClass() == Class.class ){
 			throw new RuntimeException( "Not implemented yet");
-		} else
-		{
+		} else if( next.getClass().isArray() ){
+			return next;
+		} else{
 			return next;
 		}
 	}
@@ -494,38 +429,6 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 			
 	}
 	
-	public byte[] migrateByteArrayToNext( byte[] array ) {
-		//@TODO should be new int[ array.length ]
-		// But givent that we do not have per cell dirty flag,
-		// we can clone and flag as clean
-		byte[] array2 = array.clone();  
-		ArrayInterceptor.registerArray(array2);
-		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
-		ContextInfo info2 = ArrayInterceptor.contextInfoOfArray(array2);
-		info1.global = true;
-		info2.global = true;
-		info1.next = array2;
-		info2.prev = array;
-		info2.dirty = 0x0000;
-		info1.dirty = 0x0000;
-		return array2;
-	}
-	
-	public int[] migrateIntArrayToNext( int[] array ) {
-		//@TODO should be new int[ array.length ]
-		int[] array2 = array.clone();  
-		ArrayInterceptor.registerArray(array2);
-		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
-		ContextInfo info2 = ArrayInterceptor.contextInfoOfArray(array2);
-		info1.global = true;
-		info2.global = true;
-		info1.next = array2;
-		info2.prev = array;
-		info2.dirty = 0x0000;
-		info1.dirty = 0x0000;
-		return array2;
-	}
-	
 	public Object[] migrateObjArrayToNext( Object[] array ) {
 		// this is the next class loader
 		String oldTypeName = array.getClass().getComponentType().getName();
@@ -541,36 +444,6 @@ public class ContextClassLoader extends InstrumentingClassLoader {
 		info2.dirty = 0xFFFFFFFF;
 		info1.dirty = 0x0000;
 		return (Object[]) array2;
-	}
-
-	public byte[] migrateByteArrayToPrev( byte[] array ) {
-		//@TODO should be new int[ array.length ]
-		byte[] array0 = array.clone();  
-		ArrayInterceptor.registerArray(array0);
-		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
-		ContextInfo info0 = ArrayInterceptor.contextInfoOfArray(array0);
-		info1.global = true;
-		info0.global = true;
-		info0.next = array;
-		info1.prev = array0;
-		info0.dirty = 0x0000;
-		info1.dirty = 0x0000;
-		return array0;
-	}
-	
-	public int[] migrateIntArrayToPrev( int[] array ) {
-		//@TODO should be new int[ array.length ]
-		int[] array0 = array.clone();  
-		ArrayInterceptor.registerArray(array0);
-		ContextInfo info1 = ArrayInterceptor.contextInfoOfArray(array);
-		ContextInfo info0 = ArrayInterceptor.contextInfoOfArray(array0);
-		info1.global = true;
-		info0.global = true;
-		info0.next = array;
-		info1.prev = array0;
-		info0.dirty = 0x0000;
-		info1.dirty = 0x0000;
-		return array0;
 	}
 	
 	public Object[] migrateObjArrayToPrev( Object[] array ) {

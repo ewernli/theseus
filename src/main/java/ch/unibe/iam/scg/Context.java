@@ -17,7 +17,7 @@ public class Context extends ContextClassLoader {
 	// The root set is the set of "contextual" object we want to consider to force
 	// the migration. It should contains the global objects (i.e. classes), and
 	// also the objects that were used to "close over" in invoke/execute. 
-	// @TODO should not be static
+	// @TODO should not be static?
 	private static List rootSet = new ArrayList();
 	
 	public Context(String suffix) {
@@ -180,7 +180,23 @@ public class Context extends ContextClassLoader {
 			else if ( nextValue.getClass().isArray() )
 			{
 				//@TODO handle correctly
-				ArrayInterceptor.unregisterArray( nextValue );
+				
+				alreadyProcessed.add(nextValue);
+				ContextInfo info = ArrayInterceptor.contextInfoOfArray(nextValue);
+				ArrayInterceptor.unregisterArray(info.prev);
+				info.prev = null;
+				info.next =null;
+				info.global = false;
+				info.dirty= 0x000000;
+				
+				if( nextValue instanceof  Object[])
+				{
+					for( Object o : ((Object[])nextValue)) {
+						if( o instanceof ContextAware ) {
+							forceSync( (ContextAware) o, alreadyProcessed);
+						}
+					}
+				}
 			}
 		}
 	}
